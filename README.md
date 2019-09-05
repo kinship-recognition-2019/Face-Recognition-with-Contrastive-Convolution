@@ -1,1 +1,1 @@
-# Face-Recognition-with-Constractive-Convolution
+# Face-Recognition-with-Contrastive-Convolution
