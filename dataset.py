@@ -31,7 +31,7 @@ class LFWDataset():
                 path0 = os.path.join(lfw_dir, pair[0], pair[0] + '_' + '%04d' % int(pair[1]) + '.' + file_ext)
                 path1 = os.path.join(lfw_dir, pair[2], pair[2] + '_' + '%04d' % int(pair[3]) + '.' + file_ext)
                 issame = False
-            if os.path.exists(path0) and os.path.exists(path1):  # Only add the pair if both paths exist
+            if os.path.exists(path0) and os.path.exists(path1):
                     path_list.append((path0, path1, issame))
                     issame_list.append(issame)
         return path_list
