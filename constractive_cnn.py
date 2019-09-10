@@ -1,12 +1,10 @@
 import tensorflow as tf
+import numpy as np
 
 
 class ConstractiveFourLayers():
-    def __init__(self, input_op):
-        self.input_op = input_op
 
-    def forward(self):
-        x = self.input_op
+    def forward(self, x):
 
         kernel1 = tf.get_variable(name="kernel1", shape=[3, 3, 1, 64], dtype=tf.float32,
                                   initializer=tf.contrib.layers.xavier_initializer_conv2d())
@@ -37,10 +35,14 @@ class ConstractiveFourLayers():
 
 if __name__ == '__main__':
     # [batch, in_height, in_width, in_channels]
-    norm = tf.random_normal([10, 250, 250, 1], mean=-1, stddev=4)
+    norm = np.random.rand(10, 250, 250, 1)
 
     sess = tf.Session()
-    tf.global_variables_initializer()
 
-    model = ConstractiveFourLayers(norm)
-    print(model.forward())
+
+    x = tf.placeholder(tf.float32, [None, 250, 250, 1])
+    model = ConstractiveFourLayers()
+    ccnn = model.forward(x)
+
+    sess.run(tf.global_variables_initializer())
+    print(sess.run(ccnn, feed_dict={x: norm}))

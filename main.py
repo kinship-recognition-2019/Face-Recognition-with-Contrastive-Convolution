@@ -1,48 +1,27 @@
 import tensorflow as tf
-import constractive_cnn
+from constractive_cnn import ConstractiveFourLayers
+import numpy as np
+
 
 def extract_patches(x, patch_size):
-    # tf.slice(input, begin, size, name)
-    len = x.shape()[2]
-    for i in len - 2:
-        for j in len - 2:
-            cur = tf.slice(x, [0, 0, ])
-
-
-
-
-    # unfold(dim, size, step) → Tensor
-    # slice(input_, begin, size, name=None)
-    # patches = x.unfold(2, patch_size, 1).unfold(3, patch_size, 1)
-    # start = []
-    # for a, b in itertools.product(range(x.shape[2]-patch_size), range(x.shape[3]-patch_size)):
-    #     start.append([1, 1, a, b])
-    # print(start)
-    # print(x.shape)
-    # patches = tf.strided_slice(x, [0, 0, 0, 0], [1, 1, patch_size, patch_size])
-
-    # bs, c, pi, pj, _, _ = patches.size()
-    #
-    # l = [patches[:, :, int(i / pi), i % pi, :, :] for i in range(pi * pi)]
-    # f = [l[i].contiguous().view(-1, c * patch_size * patch_size) for i in range(pi * pi)]
-    #
-    # stack_tensor = tf.stack(f)
-    #
-    # stack_tensor = stack_tensor.permute(1, 0, 2)
-    # return stack_tensor
+    cur = tf.extract_image_patches(images=x, ksizes=[1, patch_size, patch_size, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding="VALID")
+    dim, channel = int(cur.shape[1]) * int(cur.shape[2]), int(x.shape[3])
+    cur = tf.reshape(cur, (-1, dim, channel*patch_size*patch_size))
+    # print(cur.shape)
+    return cur
 
 
 class Linear():
     def __init__(self, name, in_feature, out_feature):
         self.in_feature = in_feature
         self.out_feature = out_feature
-        self.weight = tf.get_variable(name="weight_" + name, shape=[in_feature, out_feature], dtype=tf.float32,
-                                  initializer=tf.contrib.layers.xavier_initializer_conv2d())
+        self.weight = tf.transpose(tf.get_variable(name="weight_" + name, shape=[out_feature, in_feature], dtype=tf.float32,
+                                  initializer=tf.contrib.layers.xavier_initializer_conv2d()), perm=[1, 0])
         self.bias = tf.get_variable(name="bias_" + name, shape=[out_feature], dtype=tf.float32,
                                   initializer=tf.contrib.layers.xavier_initializer_conv2d())
 
     def forward(self, input):
-        return tf.matmul(input, self.weight) + self.bias
+        return tf.add(tf.tensordot(input, self.weight, [[2], [0]]), self.bias)
 
 
 class GenModel():
@@ -73,7 +52,7 @@ class GenModel():
 
         kk1 = tf.nn.relu(self.g1.forward(p1))
         kk2 = tf.nn.relu(self.g2.forward(p2))
-        kk3 = tf.nn.relu(self.g1.forward(p3))
+        kk3 = tf.nn.relu(self.g3.forward(p3))
 
         kernels = tf.concat((kk1, kk2, kk3), 1, "kernels")
         return kernels
@@ -91,7 +70,7 @@ class Regressor():
         return x
 
 
-class Identity_Regressor():
+class IdentityRegressor():
     def __init__(self, n, classes):
         self.fc1 = Linear("fc1", n, 256)
         self.fc2 = Linear("fc2", 256, classes)
@@ -104,27 +83,29 @@ class Identity_Regressor():
         return x
 
 
+def main():
+    # num_classes = 10574
+    # base_model = constractive_cnn.ConstractiveFourLayers()
+    # gen_model = GenModel(512)
+    # reg_model = Regressor(686)
+    # idreg_model = IdentityRegressor(14 * 512 * 3 * 3, num_classes)
+    pass
+
+
 if __name__ == '__main__':
-    # [batch, in_height, in_width, in_channels]
-    rd = tf.random_normal([10, 250, 250, 1], mean=-1, stddev=4)
-    # import tensorflow as tf
-    #
-    # t = [1, 2, 3, 4, 5]
-    # x = tf.strided_slice(t, [0], [5], [1])
-    # y = tf.strided_slice(t, [1], [-2])
-    # with tf.Session() as sess:
-    #     print(sess.run(x))
-    #     print(sess.run(y))
+
+    rd = np.random.rand(10, 250, 250, 1)
 
     sess = tf.Session()
-    tf.global_variables_initializer()
 
-    base_model = constractive_cnn.ConstractiveFourLayers(rd).forward()
+    x = tf.placeholder("float", [None, 250, 250, 1])
 
+    base_model = ConstractiveFourLayers()
     genarator_model = GenModel(512)
 
-    ans = genarator_model.forward(base_model)
+    process = genarator_model.forward(base_model.forward(x))
 
-    print(sess.run(ans))
+    sess.run(tf.global_variables_initializer())
+    print(sess.run(process, feed_dict={x: rd}))
 
 
