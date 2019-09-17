@@ -124,9 +124,9 @@ def main():
             # print(iteration, time.time()-start_time, loss_val)
             print("Itera {0} : {1}".format(iteration, loss_val))
 
-            if(iteration % 20 == 0):
+            if(iteration>0 and iteration % 100 == 0):
                 acc_pool, start_time = [], time.time()
-                for i in range(10):
+                for i in range(100):
                     test_1_batch, test_2_batch, label_batch = testset.get_batch(batch_size=GLOBAL_BATCH_SIZE)
 
                 #     test_1_cur, test_2_cur, label_cur = sess.run([data_1_batch, data_2_batch, label_batch])
