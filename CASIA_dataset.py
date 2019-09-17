@@ -17,7 +17,7 @@ class CasiaFaceDataset():
         # self.trainlist = self.create_pairs()
 
     def get_id_imagelist(self):
-        f = open("dataset/afterlist.txt")
+        f = open("dataset/CASIA-WebFace/casialist.txt")
         lines = f.readlines()
         subjectdict = dict()
         for name in lines[:]:
@@ -110,8 +110,8 @@ class CasiaFaceDataset():
             id2 = self.trainlist[i][3]
             label = self.trainlist[i][4]
             # print(image_name1)
-            path_img1 = os.path.join('dataset/CASIA-WebFace/', image_name1)  # Location to the image
-            path_img2 = os.path.join('dataset/CASIA-WebFace/', image_name2)
+            path_img1 = os.path.join('C:/Users/VineAsh/Desktop/CASIA-WebFace', image_name1)  # Location to the image
+            path_img2 = os.path.join('C:/Users/VineAsh/Desktop/CASIA-WebFace', image_name2)
             # print(path_img1,path_img2,id1,id2,label)
 
             # print(path_img1)

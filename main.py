@@ -4,107 +4,12 @@ from contrastive_cnn import ConstractiveFourLayers
 from CASIA_dataset import CasiaFaceDataset
 from IFW_dataset import IFWDataset
 from eval_metrics import evaluate
+from identity_regressor import identityRegressor
 import argparse
 import os, time
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 GLOBAL_BATCH_SIZE = 32
-
-def extract_patches(x, patch_size):
-    cur = tf.extract_image_patches(images=x, ksizes=[1, patch_size, patch_size, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding="VALID")
-
-    dim, channel = int(cur.shape[1]) * int(cur.shape[2]), int(x.shape[3])
-    cur = tf.reshape(cur, (-1, dim, channel*patch_size*patch_size))
-    return cur
-
-
-class Linear():
-    def __init__(self, name, in_feature, out_feature):
-        self.in_feature = in_feature
-        self.out_feature = out_feature
-        self.weight = tf.transpose(tf.get_variable(name="weight_" + name, shape=[out_feature, in_feature], dtype=tf.float32,
-                                  initializer=tf.contrib.layers.xavier_initializer_conv2d()), perm=[1, 0])
-        self.bias = tf.get_variable(name="bias_" + name, shape=[out_feature], dtype=tf.float32,
-                                  initializer=tf.contrib.layers.xavier_initializer_conv2d())
-
-    def forward(self, input):
-        # print("Error", input, self.weight)
-
-        return tf.add(tf.tensordot(input, self.weight, [[len(input.shape)-1], [0]]), self.bias)
-        # else:
-        #     return tf.add(tf.tensordot(input, self.weight, [[1], [0]]), self.bias)
-
-
-class GenModel():
-    def __init__(self, feature_size):
-        self.f_size = feature_size
-        self.g1 = Linear("g1", self.f_size*3*3, self.f_size*3*3)
-        self.g2 = Linear("g2", self.f_size*2*2, self.f_size*3*3)
-        self.g3 = Linear("g3", self.f_size*1*1, self.f_size*3*3)
-
-    def forward(self, x, scope):
-        S0 = x
-
-        kernel1_ = tf.get_variable(name="kernel1_"+scope, shape=[3, 3, self.f_size, self.f_size], dtype=tf.float32,
-                                  initializer=tf.contrib.layers.xavier_initializer_conv2d())
-        conv1 = tf.nn.conv2d(S0, filter=kernel1_, strides=[1, 1, 1, 1], padding='VALID')
-        S1 = tf.nn.relu(conv1)
-
-        kernel2_ = tf.get_variable(name="kernel2_"+scope, shape=[3, 3, self.f_size, self.f_size], dtype=tf.float32,
-                                  initializer=tf.contrib.layers.xavier_initializer_conv2d())
-        conv2 = tf.nn.conv2d(S1, filter=kernel2_, strides=[1, 1, 1, 1], padding='VALID')
-        S2 = tf.nn.relu(conv2)
-
-        p1 = extract_patches(S0, 3)
-
-        p2 = extract_patches(S1, 2)
-        p3 = extract_patches(S2, 1)
-
-        kk1 = tf.nn.relu(self.g1.forward(p1))
-
-        kk2 = tf.nn.relu(self.g2.forward(p2))
-
-        kk3 = tf.nn.relu(self.g3.forward(p3))
-
-        kernels = tf.concat((kk1, kk2, kk3), 1, "kernels")
-
-        return kernels
-
-
-class Regressor():
-    def __init__(self, n):
-        self.n = n
-        self.linear = Linear("linear", n, 1)
-
-    def forward(self, x):
-        # bs, c = x.shape[0], x.shape[1]
-        # print(x) # 64*350 pytorch 64*686
-        x = self.linear.forward(x)
-        # print(x) # 64*1
-        x = tf.sigmoid(x)
-        # print(x) # 64*1
-        return x
-
-
-class IdentityRegressor():
-    def __init__(self, n, classes):
-        self.fc1 = Linear("fc1", n, 256)
-        self.fc2 = Linear("fc2", 256, classes)
-
-    def forward(self, x):
-        # bs, m, n = int(x.shape[0]), int(x.shape[1]), int(x.shape[2])
-        # print("x", x)
-        m, n = int(x.shape[1]), int(x.shape[2])
-
-        # print(x) # 64*14*4608
-        x = tf.reshape(x, (-1, n*m))
-        # print(x) # 64*64512
-        x = tf.nn.relu(self.fc1.forward(x))
-        # print(x) # 64*256
-        x = self.fc2.forward(x)
-        x = tf.nn.softmax(x)
-        # print(x) # 64*10575
-        return x
 
 
 def compute_contrastive_features(data_1, data_2, basemodel, gen_model):
@@ -127,16 +32,14 @@ def compute_contrastive_features(data_1, data_2, basemodel, gen_model):
 
     kernel_1 = kernel_1 / norm_kernel1_1
     kernel_2 = kernel_2 / norm_kernel2_2
-    # print("l", kernel_1) # 64 * 14 * 4608
+    # print(kernel_1) # 64 * 14 * 4608
 
     F1, F2 = data_1, data_2
     Kab = tf.abs(kernel_1 - kernel_2)
-    # print(F1.shape)
 
     # bs, featuresdim, h, w = int(), int(F1.shape[3]), int(F1.shape[1]), int(F1.shape[2])
     featuresdim, h, w = int(F1.shape[3]), int(F1.shape[1]), int(F1.shape[2])
-    # print("fhw")
-    # print(featuresdim, h, w)
+
     # F1 = tf.reshape(tensor=F1, shape=(1, h, w, bs * featuresdim))
     # F2 = tf.reshape(tensor=F2, shape=(1, h, w, bs * featuresdim))
     F1 = tf.reshape(tensor=F1, shape=(-1, h, w, GLOBAL_BATCH_SIZE * featuresdim))
@@ -159,10 +62,7 @@ def compute_contrastive_features(data_1, data_2, basemodel, gen_model):
 
     A_list = tf.reshape(F1_T_out, (-1, 350))
     B_list = tf.reshape(F2_T_out, (-1, 350))
-    # print(A_list.shape())
-    # A_list = F1_T_out
-    # B_list = F2_T_out
-    # print(F1_T_out)
+
     # print(A_list) # 64*350  pytorch=64*686
 
     return A_list, B_list, kernel_1, kernel_2
@@ -170,21 +70,10 @@ def compute_contrastive_features(data_1, data_2, basemodel, gen_model):
 
 def main():
     parser = argparse.ArgumentParser(description="Tensorflow Contrastive Convolution")
-    parser.add_argument('--batch_size', type=int, default = 64 , metavar='N',
-                        help='input batch size for training (default: 64)')
     parser.add_argument('--num_classes', default=10575, type=int,
                         metavar='N', help='number of classes (default: 5749)')
-    parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
-                        help='manual epoch number (useful on restarts)')
     parser.add_argument('--iters', type=int, default = 200000, metavar='N',
                         help='number of iterations to train (default: 10)')
-    parser.add_argument('--epochs', type=int, default = 80, metavar='N',
-                        help='number of epochs to train (default: 10)')
-    parser.add_argument('--lfw-dir', type=str,
-                        default='dataset/lfw',
-                        help='path to dataset')
-    parser.add_argument('--lfw_pairs_path', type=str, default='dataset/lfw_pairs.txt',
-                        help='path to pairs file')
     args = parser.parse_args()
 
     dataset = CasiaFaceDataset()
@@ -212,6 +101,7 @@ def main():
     hk2 = idreg_model.forward(org_kernel_2)
 
     loss1 = tf.reduce_mean(tf.abs(tf.subtract(target, SAB)))
+    # loss1 = tf.reduce_sum(tf.square(tf.substract(target, SAB)))
     cross_entropy1 = tf.reduce_mean(-tf.reduce_sum(c1 * tf.log(hk1), reduction_indices=[1]))
     cross_entropy2 = tf.reduce_mean(-tf.reduce_sum(c2 * tf.log(hk2), reduction_indices=[1]))
     loss2 = tf.add(cross_entropy1, cross_entropy2) * 0.5
@@ -230,14 +120,14 @@ def main():
 
 
             # if(iteration % 1 == 0):
-            #     test_1_batch, test_2_batch, label_batch = testset.get_batch()
+                test_1_batch, test_2_batch, label_batch = testset.get_batch(batch_size=16)
             #     test_1_cur, test_2_cur, label_cur = sess.run([data_1_batch, data_2_batch, label_batch])
-            #     out1_a, out1_b, k1, k2 = compute_contrastive_features(test_1_cur, test_2_cur, base_model, gen_model)
+                out1_a, out1_b, k1, k2 = sess.run(compute_contrastive_features(test_1_cur, test_2_cur, base_model, gen_model))
             #
-            #     SA = reg_model.forward(out1_a)
-            #     SB = reg_model.forward(out1_b)
-            #     SAB = tf.add(SA, SB) / 2.0
-            #     SAB = tf.squeeze(SAB)
+                SA = sess.run(reg_model.forward(out1_a))
+                SB = sess.run(reg_model.forward(out1_b))
+                SAB = tf.add(SA, SB) / 2.0
+                SAB = tf.squeeze(SAB)
             #
             #     dists = SAB.eval()
             #     labels = np.array(label_cur)
