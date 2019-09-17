@@ -1,3 +1,5 @@
+import tensorflow as tf
+
 class Linear():
     def __init__(self, name, in_feature, out_feature):
         self.in_feature = in_feature

@@ -103,7 +103,6 @@ class CasiaFaceDataset():
 
     def get_item(self, i):
         if self.istrain is True:
-
             image_name1 = self.trainlist[i][0][:-1]
             image_name2 = self.trainlist[i][2][:-1]
             id1 = self.trainlist[i][1]

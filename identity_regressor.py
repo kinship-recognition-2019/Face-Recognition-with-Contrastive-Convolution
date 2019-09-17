@@ -1,4 +1,6 @@
 import tensorflow as tf
+from linear import Linear
+
 
 class IdentityRegressor():
     def __init__(self, n, classes):

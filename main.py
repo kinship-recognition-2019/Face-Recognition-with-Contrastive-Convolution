@@ -4,7 +4,10 @@ from contrastive_cnn import ConstractiveFourLayers
 from CASIA_dataset import CasiaFaceDataset
 from IFW_dataset import IFWDataset
 from eval_metrics import evaluate
-from identity_regressor import identityRegressor
+from linear import Linear
+from gen_model import GenModel
+from regressor import Regressor
+from identity_regressor import IdentityRegressor
 import argparse
 import os, time
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -50,7 +53,7 @@ def compute_contrastive_features(data_1, data_2, basemodel, gen_model):
     # kernelsize = 3
     # T = tf.reshape(Kab, (-1, kernelsize, kernelsize, 32768))
 
-    kernel = tf.get_variable(name="kernel", shape=[3, 3, GLOBAL_BATCH_SIZE * featuresdim, 896], dtype=tf.float32,
+    kernel = tf.get_variable(name="kernel", shape=[3, 3, GLOBAL_BATCH_SIZE * featuresdim, 14*GLOBAL_BATCH_SIZE], dtype=tf.float32,
                          initializer=tf.contrib.layers.xavier_initializer_conv2d())
     # kernel = tf.get_variable(name="kernel", dtype=tf.float32, initializer=T)
 
@@ -112,32 +115,30 @@ def main():
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         for iteration in range(args.iters):
-            start_time = time.time()
+            # start_time = time.time()
             data_1_batch, data_2_batch, c1_batch, c2_batch, target_batch = dataset.get_batch(batch_size=GLOBAL_BATCH_SIZE)
+
             # data_1_cur, data_2_cur, c1_cur, c2_cur, target_cur = sess.run([data_1_batch, data_2_batch, c1_batch, c2_batch, target_batch])
             _, loss_val = sess.run([optimizer, loss], feed_dict={input1: data_1_batch, input2: data_2_batch, c1: c1_batch, c2: c2_batch, target: target_batch})
-            print(iteration, time.time()-start_time, loss_val)
+            # print(iteration, time.time()-start_time, loss_val)
+            print(iteration, loss_val)
 
+            if(iteration % 1 == 0):
+                test_1_batch, test_2_batch, label_batch = testset.get_batch(batch_size=GLOBAL_BATCH_SIZE)
 
-            # if(iteration % 1 == 0):
-                test_1_batch, test_2_batch, label_batch = testset.get_batch(batch_size=16)
             #     test_1_cur, test_2_cur, label_cur = sess.run([data_1_batch, data_2_batch, label_batch])
-                out1_a, out1_b, k1, k2 = sess.run(compute_contrastive_features(test_1_cur, test_2_cur, base_model, gen_model))
+                # out1_a, out1_b, k1, k2 = sess.run(compute_contrastive_features(test_1_batch, test_2_batch, base_model, gen_model))
+                SAB_val  = sess.run([SAB], feed_dict={input1: test_1_batch, input2: test_2_batch})
+                # print(SAB_val)
             #
-                SA = sess.run(reg_model.forward(out1_a))
-                SB = sess.run(reg_model.forward(out1_b))
-                SAB = tf.add(SA, SB) / 2.0
-                SAB = tf.squeeze(SAB)
-            #
-            #     dists = SAB.eval()
-            #     labels = np.array(label_cur)
-            #
-            #     dists = dists.eval()
-            #     labels = np.array(labels)
-            #     accuracy = evaluate(1 - dists, labels)
+                dists = np.array(SAB_val).reshape((-1, 1))
+                labels = np.array(label_batch)
+                accuracy = evaluate(1.0 - dists, labels)
+                print("Acc", np.mean(accuracy))
 
 
 if __name__ == '__main__':
+    main()
     # data1 = tf.random_normal([1, 5, 5, 32768], mean=0.0, stddev=1.0, dtype=tf.float32, seed=None, name=None)
     # data1 = tf.random_normal([64, 128, 128, 1], mean=0.0,stddev=1.0,dtype=tf.float32,seed=None,name=None)
     # data2 = tf.random_normal([64, 128, 128, 1], mean=0.0, stddev=1.0, dtype=tf.float32, seed=None, name=None)
@@ -162,7 +163,7 @@ if __name__ == '__main__':
     # print(sess.run(ans))
 
     # print(ans.shape)
-    main()
+
 
 
 

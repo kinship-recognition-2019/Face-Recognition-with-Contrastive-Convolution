@@ -41,6 +41,7 @@ def evaluate(distances, labels, nrof_folds=10):
 
 
 def calculate_roc(thresholds, distances, labels, nrof_folds=10):
+
     nrof_pairs = min(len(labels), len(distances))
     nrof_thresholds = len(thresholds)
     k_fold = KFold(n_splits=nrof_folds, shuffle=False)

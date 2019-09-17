@@ -1,16 +1,15 @@
 import numpy as np
 import os
 import tensorflow as tf
+from PIL import Image
 
 
 class IFWDataset():
     def __init__(self, img_path, pairs_path):
         self.pairs_path = "dataset/lfw/lfwpairs.txt"
         self.img_path = "dataset/lfw/lfw"
-        self.testlist = self.get_lfw_paths()
-        self.size = 6000
         self.cur = 0
-        # self.testlist = self.get_lfw_paths(img_dir)
+        self.testlist = self.get_lfw_paths(self.img_path)
 
     def read_lfw_pairs(self):
         pairs = []
@@ -31,18 +30,17 @@ class IFWDataset():
             if len(pair) == 3:
                 path0 = os.path.join(self.img_path, pair[0], pair[0] + '_' + '%04d' % int(pair[1]) + '.' + file_ext)
                 path1 = os.path.join(self.img_path, pair[0], pair[0] + '_' + '%04d' % int(pair[2]) + '.' + file_ext)
-                issame = 1
+                issame = [True]
             elif len(pair) == 4:
                 path0 = os.path.join(self.img_path, pair[0], pair[0] + '_' + '%04d' % int(pair[1]) + '.' + file_ext)
                 path1 = os.path.join(self.img_path, pair[2], pair[2] + '_' + '%04d' % int(pair[3]) + '.' + file_ext)
-                issame = 0
+                issame = [False]
             if os.path.exists(path0) and os.path.exists(path1):
                     path_list.append((path0, path1, issame))
                     issame_list.append(issame)
         return path_list
 
     def parse_function(self, filename):
-        # print(filename)
         img = Image.open(filename)
         image_resized = img.resize((128, 128))
         image_gray = image_resized.convert('L')
@@ -51,7 +49,7 @@ class IFWDataset():
         return image_ext
 
     def get_pairs(self, index):
-        (path_1, path_2, issame) = self.testlist[index]
+        path_1, path_2, issame = self.testlist[index]
         img1, img2 = self.parse_function(path_1), self.parse_function(path_2)
         return img1, img2, issame
 
@@ -76,23 +74,24 @@ class IFWDataset():
     #     label = np.array(label)
     #
     #     return np.array(imageA), np.array(imageB), id1_enc, id2_enc, label
+
     def get_batch(self, batch_size=64):
         imageA, imageB = [], []
         label = []
-
+        self.testlist = self.get_lfw_paths()
         for i in range(self.cur, self.cur + batch_size):
-            i = i % self.size
+            i = i % len(self.testlist)
             imageA_cur, imageB_cur, label_cur = self.get_pairs(i)
             imageA.append(imageA_cur)
             imageB.append(imageB_cur)
-            label.append(tf.constant(label_cur))
+            label.append(label_cur)
 
-        label.append(label_cur)
-        return img1_list, img2_list, label_list
+        label = np.array(label)
+        return np.array(imageA), np.array(imageB), label
 
 
 if __name__ == '__main__':
     dataset = IFWDataset(img_path="dataset\lfw", pairs_path="dataset\pairs.txt")
-    print(dataset.get_lfw_paths())
+
 
 
