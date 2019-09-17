@@ -114,27 +114,31 @@ def main():
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
+
         for iteration in range(args.iters):
-            # start_time = time.time()
+
             data_1_batch, data_2_batch, c1_batch, c2_batch, target_batch = dataset.get_batch(batch_size=GLOBAL_BATCH_SIZE)
 
             # data_1_cur, data_2_cur, c1_cur, c2_cur, target_cur = sess.run([data_1_batch, data_2_batch, c1_batch, c2_batch, target_batch])
             _, loss_val = sess.run([optimizer, loss], feed_dict={input1: data_1_batch, input2: data_2_batch, c1: c1_batch, c2: c2_batch, target: target_batch})
             # print(iteration, time.time()-start_time, loss_val)
-            print(iteration, loss_val)
+            print("Itera {0} : {1}".format(iteration, loss_val))
 
-            if(iteration % 1 == 0):
-                test_1_batch, test_2_batch, label_batch = testset.get_batch(batch_size=GLOBAL_BATCH_SIZE)
+            if(iteration % 20 == 0):
+                acc_pool, start_time = [], time.time()
+                for i in range(10):
+                    test_1_batch, test_2_batch, label_batch = testset.get_batch(batch_size=GLOBAL_BATCH_SIZE)
 
-            #     test_1_cur, test_2_cur, label_cur = sess.run([data_1_batch, data_2_batch, label_batch])
-                # out1_a, out1_b, k1, k2 = sess.run(compute_contrastive_features(test_1_batch, test_2_batch, base_model, gen_model))
-                SAB_val  = sess.run([SAB], feed_dict={input1: test_1_batch, input2: test_2_batch})
-                # print(SAB_val)
-            #
-                dists = np.array(SAB_val).reshape((-1, 1))
-                labels = np.array(label_batch)
-                accuracy = evaluate(1.0 - dists, labels)
-                print("Acc", np.mean(accuracy))
+                #     test_1_cur, test_2_cur, label_cur = sess.run([data_1_batch, data_2_batch, label_batch])
+                    # out1_a, out1_b, k1, k2 = sess.run(compute_contrastive_features(test_1_batch, test_2_batch, base_model, gen_model))
+                    SAB_val  = sess.run([SAB], feed_dict={input1: test_1_batch, input2: test_2_batch})
+                    # print(SAB_val)
+                #
+                    dists = np.array(SAB_val).reshape((-1, 1))
+                    labels = np.array(label_batch)
+                    accuracy = evaluate(1.0 - dists, labels)
+                    acc_pool.append(np.mean(accuracy))
+                print("Acc(%.2f)"%(time.time()-start_time), np.mean(acc_pool))
 
 
 if __name__ == '__main__':

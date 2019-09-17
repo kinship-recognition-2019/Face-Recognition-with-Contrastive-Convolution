@@ -6,8 +6,8 @@ from PIL import Image
 
 class IFWDataset():
     def __init__(self, img_path, pairs_path):
-        self.pairs_path = "dataset/lfwpairs.txt"
-        self.img_path = "dataset/lfw/lfw"
+        self.pairs_path = "dataset/pairs.txt"
+        self.img_path = "dataset/lfw"
         self.cur = 0
         self.testlist = self.get_lfw_paths(self.img_path)
 
@@ -85,6 +85,7 @@ class IFWDataset():
             imageA.append(imageA_cur)
             imageB.append(imageB_cur)
             label.append(label_cur)
+        self.cur = self.cur + batch_size
 
         label = np.array(label)
         return np.array(imageA), np.array(imageB), label
