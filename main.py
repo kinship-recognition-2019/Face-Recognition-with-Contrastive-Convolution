@@ -5,8 +5,8 @@ from CASIA_dataset import CasiaFaceDataset
 from IFW_dataset import IFWDataset
 from eval_metrics import evaluate
 import argparse
-import os
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+import os, time
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 GLOBAL_BATCH_SIZE = 32
 
@@ -148,7 +148,7 @@ def compute_contrastive_features(data_1, data_2, basemodel, gen_model):
     # T = tf.reshape(Kab, (-1, kernelsize, kernelsize, 32768))
 
     kernel = tf.get_variable(name="kernel", shape=[3, 3, GLOBAL_BATCH_SIZE * featuresdim, 896], dtype=tf.float32,
-                             initializer=tf.contrib.layers.xavier_initializer_conv2d())
+                         initializer=tf.contrib.layers.xavier_initializer_conv2d())
     # kernel = tf.get_variable(name="kernel", dtype=tf.float32, initializer=T)
 
     F1_T_out = tf.nn.conv2d(input=F1, filter=kernel, strides=[1, 1, 1, 1], padding='SAME')
@@ -222,11 +222,12 @@ def main():
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         for iteration in range(args.iters):
+            start_time = time.time()
             data_1_batch, data_2_batch, c1_batch, c2_batch, target_batch = dataset.get_batch(batch_size=GLOBAL_BATCH_SIZE)
-
             # data_1_cur, data_2_cur, c1_cur, c2_cur, target_cur = sess.run([data_1_batch, data_2_batch, c1_batch, c2_batch, target_batch])
             _, loss_val = sess.run([optimizer, loss], feed_dict={input1: data_1_batch, input2: data_2_batch, c1: c1_batch, c2: c2_batch, target: target_batch})
-            print(iteration, loss_val)
+            print(iteration, time.time()-start_time, loss_val)
+
 
             # if(iteration % 1 == 0):
             #     test_1_batch, test_2_batch, label_batch = testset.get_batch()
