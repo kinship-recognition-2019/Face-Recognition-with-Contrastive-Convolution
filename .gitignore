@@ -1,4 +1,2 @@
 .idea
 __pycache__
-dataset/CASIA-WebFace/*
-dataset/lfw/*
