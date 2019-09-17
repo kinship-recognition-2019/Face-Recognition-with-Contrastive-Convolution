@@ -5,7 +5,10 @@ from CASIA_dataset import CasiaFaceDataset
 from IFW_dataset import IFWDataset
 from eval_metrics import evaluate
 import argparse
+import os
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
+GLOBAL_BATCH_SIZE = 32
 
 def extract_patches(x, patch_size):
     cur = tf.extract_image_patches(images=x, ksizes=[1, patch_size, patch_size, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding="VALID")
@@ -130,21 +133,21 @@ def compute_contrastive_features(data_1, data_2, basemodel, gen_model):
     Kab = tf.abs(kernel_1 - kernel_2)
     # print(F1.shape)
 
-    # bs, featuresdim, h, w = int(F1.shape[0]), int(F1.shape[3]), int(F1.shape[1]), int(F1.shape[2])
+    # bs, featuresdim, h, w = int(), int(F1.shape[3]), int(F1.shape[1]), int(F1.shape[2])
     featuresdim, h, w = int(F1.shape[3]), int(F1.shape[1]), int(F1.shape[2])
     # print("fhw")
     # print(featuresdim, h, w)
     # F1 = tf.reshape(tensor=F1, shape=(1, h, w, bs * featuresdim))
     # F2 = tf.reshape(tensor=F2, shape=(1, h, w, bs * featuresdim))
-    F1 = tf.reshape(tensor=F1, shape=(-1, h, w, 64 * featuresdim))
-    F2 = tf.reshape(tensor=F2, shape=(-1, h, w, 64 * featuresdim))
+    F1 = tf.reshape(tensor=F1, shape=(-1, h, w, GLOBAL_BATCH_SIZE * featuresdim))
+    F2 = tf.reshape(tensor=F2, shape=(-1, h, w, GLOBAL_BATCH_SIZE * featuresdim))
     # print(F1.shape) # 1*5*5*32768
 
     # noofkernels = 14
     # kernelsize = 3
     # T = tf.reshape(Kab, (-1, kernelsize, kernelsize, 32768))
 
-    kernel = tf.get_variable(name="kernel", shape=[3, 3, 32768, 896], dtype=tf.float32,
+    kernel = tf.get_variable(name="kernel", shape=[3, 3, GLOBAL_BATCH_SIZE * featuresdim, 896], dtype=tf.float32,
                              initializer=tf.contrib.layers.xavier_initializer_conv2d())
     # kernel = tf.get_variable(name="kernel", dtype=tf.float32, initializer=T)
 
@@ -219,29 +222,28 @@ def main():
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         for iteration in range(args.iters):
-            data_1_batch, data_2_batch, c1_batch, c2_batch, target_batch = dataset.get_batch()
+            data_1_batch, data_2_batch, c1_batch, c2_batch, target_batch = dataset.get_batch(batch_size=GLOBAL_BATCH_SIZE)
 
-            data_1_cur, data_2_cur, c1_cur, c2_cur, target_cur = sess.run([data_1_batch, data_2_batch, c1_batch, c2_batch, target_batch])
-
-            _, loss_val = sess.run([optimizer, loss], feed_dict={input1: data_1_cur, input2: data_2_cur, c1: c1_cur, c2: c2_cur, target: target_cur})
+            # data_1_cur, data_2_cur, c1_cur, c2_cur, target_cur = sess.run([data_1_batch, data_2_batch, c1_batch, c2_batch, target_batch])
+            _, loss_val = sess.run([optimizer, loss], feed_dict={input1: data_1_batch, input2: data_2_batch, c1: c1_batch, c2: c2_batch, target: target_batch})
             print(iteration, loss_val)
 
-            if(iteration % 1 == 0):
-                test_1_batch, test_2_batch, label_batch = testset.get_batch()
-                test_1_cur, test_2_cur, label_cur = sess.run([data_1_batch, data_2_batch, label_batch])
-                out1_a, out1_b, k1, k2 = compute_contrastive_features(test_1_cur, test_2_cur, base_model, gen_model)
-
-                SA = reg_model.forward(out1_a)
-                SB = reg_model.forward(out1_b)
-                SAB = tf.add(SA, SB) / 2.0
-                SAB = tf.squeeze(SAB)
-
-                dists = SAB.eval()
-                labels = np.array(label_cur)
-
-                dists = dists.eval()
-                labels = np.array(labels)
-                accuracy = evaluate(1 - dists, labels)
+            # if(iteration % 1 == 0):
+            #     test_1_batch, test_2_batch, label_batch = testset.get_batch()
+            #     test_1_cur, test_2_cur, label_cur = sess.run([data_1_batch, data_2_batch, label_batch])
+            #     out1_a, out1_b, k1, k2 = compute_contrastive_features(test_1_cur, test_2_cur, base_model, gen_model)
+            #
+            #     SA = reg_model.forward(out1_a)
+            #     SB = reg_model.forward(out1_b)
+            #     SAB = tf.add(SA, SB) / 2.0
+            #     SAB = tf.squeeze(SAB)
+            #
+            #     dists = SAB.eval()
+            #     labels = np.array(label_cur)
+            #
+            #     dists = dists.eval()
+            #     labels = np.array(labels)
+            #     accuracy = evaluate(1 - dists, labels)
 
 
 if __name__ == '__main__':
