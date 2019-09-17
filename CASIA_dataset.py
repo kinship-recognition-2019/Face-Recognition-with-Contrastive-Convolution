@@ -17,7 +17,7 @@ class CasiaFaceDataset():
         # self.trainlist = self.create_pairs()
 
     def get_id_imagelist(self):
-        f = open("dataset/CASIA-WebFace/casialist.txt")
+        f = open("dataset/casialist.txt")
         lines = f.readlines()
         subjectdict = dict()
         for name in lines[:]:
