@@ -138,7 +138,7 @@ def main():
                     labels = np.array(label_batch)
                     accuracy = evaluate(1.0 - dists, labels)
                     acc_pool.append(np.mean(accuracy))
-                print("Acc(%.2f)"%(time.time()-start_time), np.mean(acc_pool))
+                print("Acc(%.2f)"%(time.time()-start_time), np.mean(acc_pool), acc_pool)
 
 
 if __name__ == '__main__':
