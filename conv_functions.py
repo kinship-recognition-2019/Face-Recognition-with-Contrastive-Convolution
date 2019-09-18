@@ -9,13 +9,17 @@ def conv_op(input_op, name, kh, kw, n_out, dh, dw):
     return conv
 
 
-def group_conv_op(input_op, name, kh, kw, n_out, dh, dw, groups):
-    pass
-    # n_out_final = n_out / groups
-    # inputs = tf.split(input_op, groups, -1)
-    # for i in range(len(inputs)):
-    #     conv_cur = conv_op(inputs[i], name, kh, kw, n_out_final, dh, dw)
-
+def group_conv_op(input_op, kernel, dh, dw, groups):
+    # n_in = input_op.shape[-1] / groups
+    # n_out = n_out / groups
+    inputs = tf.split(input_op, groups, 3)
+    conv_group = []
+    for i in range(len(inputs)):
+        # kernel = tf.get_variable(name="groupkernel_" + name + str(i), shape=[kh, kw, n_in, n_out], dtype=tf.float32,
+        #                          initializer=tf.contrib.layers.xavier_initializer_conv2d())
+        conv_cur = tf.nn.conv2d(input_op, kernel, (1, dh, dw, 1), padding='SAME')
+        conv_group.append(conv_cur)
+    return conv_group
 
 
 

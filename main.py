@@ -7,6 +7,7 @@ from eval_metrics import evaluate
 from gen_model import GenModel
 from regressor import Regressor
 from identity_regressor import IdentityRegressor
+from conv_functions import group_conv_op
 import argparse
 import os, time
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -46,25 +47,32 @@ def compute_contrastive_features(data_1, data_2, basemodel, gen_model):
 
     F1 = tf.reshape(tensor=F1, shape=(-1, h, w, GLOBAL_BATCH_SIZE * featuresdim))
     F2 = tf.reshape(tensor=F2, shape=(-1, h, w, GLOBAL_BATCH_SIZE * featuresdim))
+
     # print(F1.shape) # 1*5*5*16384
 
     noofkernels = 14
     kernelsize = 3
 
 
-    T = tf.reshape(Kab, (kernelsize, kernelsize, featuresdim * GLOBAL_BATCH_SIZE, -1))
+    T = tf.reshape(Kab, (kernelsize, kernelsize, featuresdim * GLOBAL_BATCH_SIZE, noofkernels))
     # T = tf.reshape(Kab, (kernelsize, kernelsize, -1, noofkernels * GLOBAL_BATCH_SIZE))
-
-    F1_T_out = tf.nn.conv2d(input=F1, filter=T, strides=[1, 1, 1, 1], padding='SAME')
-    F2_T_out = tf.nn.conv2d(input=F2, filter=T, strides=[1, 1, 1, 1], padding='SAME')
+    # kernel = tf.get_variable(name="T_", shape=[kernelsize, kernelsize, featuresdim * GLOBAL_BATCH_SIZE, noofkernels * GLOBAL_BATCH_SIZE], dtype=tf.float32,
+    #                          initializer=tf.contrib.layers.xavier_initializer_conv2d())
+    F1_T_out = group_conv_op(input_op=F1, kernel=T, dh=1, dw=1, groups=GLOBAL_BATCH_SIZE)
+    F2_T_out = group_conv_op(input_op=F2, kernel=T, dh=1, dw=1, groups=GLOBAL_BATCH_SIZE)
+    # F1_T_out = tf.nn.conv2d(input=F1, filter=T, strides=[1, 1, 1, 1], padding='SAME')
+    # F2_T_out = tf.nn.conv2d(input=F2, filter=T, strides=[1, 1, 1, 1], padding='SAME')
+    F1_T_out = tf.reshape(F1_T_out, (1, h, w, -1))
+    F2_T_out = tf.reshape(F2_T_out, (1, h, w, -1))
+    # print(F1_T_out)
 
     # print(F1_T_out) # 1*5*5*896  pytorch=1*7*7*896
     # p, q, r, s = F1_T_out.size()
 
-    A_list = tf.reshape(F1_T_out, (-1, 350))
-    B_list = tf.reshape(F2_T_out, (-1, 350))
+    A_list = tf.reshape(F1_T_out, (-1, 448))
+    B_list = tf.reshape(F2_T_out, (-1, 448))
 
-    print(A_list) # 64*350  pytorch=64*686
+    # print(A_list) # 64*350  pytorch=64*686
 
     return A_list, B_list, kernel_1, kernel_2
 
@@ -82,7 +90,7 @@ def main():
 
     base_model = ConstractiveFourLayers()
     gen_model = GenModel(512)
-    reg_model = Regressor(350)
+    reg_model = Regressor(448)
     idreg_model = IdentityRegressor(14 * 512 * 3 * 3, args.num_classes)
 
     input1 = tf.placeholder(tf.float32, [None, 128, 128, 1])
