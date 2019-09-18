@@ -4,10 +4,10 @@ import tensorflow as tf
 from PIL import Image
 
 
-class IFWDataset():
-    def __init__(self, img_path, pairs_path):
+class LFWDataset():
+    def __init__(self):
         self.pairs_path = "dataset/pairs.txt"
-        self.img_path = "dataset/lfw"
+        self.img_path = "dataset/lfw/lfw"
         self.cur = 0
         self.testlist = self.get_lfw_paths(self.img_path)
 

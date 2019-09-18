@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 from contrastive_cnn import ConstractiveFourLayers
 from CASIA_dataset import CasiaFaceDataset
-from IFW_dataset import IFWDataset
+from IFW_dataset import LFWDataset
 from eval_metrics import evaluate
 from linear import Linear
 from gen_model import GenModel
@@ -80,7 +80,7 @@ def main():
     args = parser.parse_args()
 
     dataset = CasiaFaceDataset()
-    testset = IFWDataset('dataset/lfw', 'dataset/pairs.txt')
+    testset = LFWDataset()
 
     base_model = ConstractiveFourLayers()
     gen_model = GenModel(512)
