@@ -143,7 +143,7 @@ def main():
                 #     test_1_cur, test_2_cur, label_cur = sess.run([data_1_batch, data_2_batch, label_batch])
                     # out1_a, out1_b, k1, k2 = sess.run(compute_contrastive_features(test_1_batch, test_2_batch, base_model, gen_model))
                     SAB_val  = sess.run([SAB], feed_dict={input1: test_1_batch, input2: test_2_batch})
-                    print(SAB_val)
+                    # print(SAB_val)
 
                     dists = np.array(SAB_val).reshape((-1, 1))
                     labels = np.array(label_batch)
