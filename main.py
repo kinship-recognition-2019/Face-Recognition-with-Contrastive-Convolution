@@ -4,7 +4,6 @@ from contrastive_cnn import ConstractiveFourLayers
 from CASIA_dataset import CasiaFaceDataset
 from LFW_dataset import LFWDataset
 from eval_metrics import evaluate
-from linear import Linear
 from gen_model import GenModel
 from regressor import Regressor
 from identity_regressor import IdentityRegressor
@@ -19,46 +18,45 @@ def compute_contrastive_features(data_1, data_2, basemodel, gen_model):
 
     data_1 = basemodel.forward(data_1, "data_1")
     data_2 = basemodel.forward(data_2, "data_2")
-    # print(data_1) # 64*5*5*512
+    # print(data_1) # ?*5*5*512
 
     kernel_1 = gen_model.forward(data_1, "kernel_1")
     kernel_2 = gen_model.forward(data_2, "kernel_2")
-    # print(kernel_1) # 64*14*4608
+    # print(kernel_1) # ?*14*4608
 
     norm_kernel1 = tf.norm(kernel_1, 2, 2)
     norm_kernel2 = tf.norm(kernel_2, 2, 2)
-    # print(norm_kernel1) # 64*14
+    # print(norm_kernel1) # ?*14
 
     norm_kernel1_1 = tf.expand_dims(norm_kernel1, 2, name=None)
     norm_kernel2_2 = tf.expand_dims(norm_kernel2, 2, name=None)
-    # print(norm_kernel1_1) # 64*14*1
+    # print(norm_kernel1_1) # ?*14*1
 
     kernel_1 = kernel_1 / norm_kernel1_1
     kernel_2 = kernel_2 / norm_kernel2_2
-    # print(kernel_1) # 64 * 14 * 4608
+    # print(kernel_1) # ?*14*4608
 
     F1, F2 = data_1, data_2
     Kab = tf.abs(kernel_1 - kernel_2)
+    # print(Kab)  # ?*14*4608
 
     # bs, featuresdim, h, w = int(), int(F1.shape[3]), int(F1.shape[1]), int(F1.shape[2])
     featuresdim, h, w = int(F1.shape[3]), int(F1.shape[1]), int(F1.shape[2])
+    # print(featuresdim) # 512
 
-    # F1 = tf.reshape(tensor=F1, shape=(1, h, w, bs * featuresdim))
-    # F2 = tf.reshape(tensor=F2, shape=(1, h, w, bs * featuresdim))
     F1 = tf.reshape(tensor=F1, shape=(-1, h, w, GLOBAL_BATCH_SIZE * featuresdim))
     F2 = tf.reshape(tensor=F2, shape=(-1, h, w, GLOBAL_BATCH_SIZE * featuresdim))
-    # print(F1.shape) # 1*5*5*32768
+    # print(F1.shape) # 1*5*5*16384
 
     noofkernels = 14
     kernelsize = 3
-    # T = tf.reshape(Kab, (noofkernels, kernelsize, kernelsize, -1))
 
-    kernel = tf.get_variable(name="kernel", shape=[kernelsize, kernelsize, GLOBAL_BATCH_SIZE * featuresdim, noofkernels*GLOBAL_BATCH_SIZE], dtype=tf.float32,
-                         initializer=tf.contrib.layers.xavier_initializer_conv2d())
-    # kernel = tf.get_variable(name="kernel", dtype=tf.float32, initializer=T)
 
-    F1_T_out = tf.nn.conv2d(input=F1, filter=kernel, strides=[1, 1, 1, 1], padding='SAME')
-    F2_T_out = tf.nn.conv2d(input=F2, filter=kernel, strides=[1, 1, 1, 1], padding='SAME')
+    T = tf.reshape(Kab, (kernelsize, kernelsize, featuresdim * GLOBAL_BATCH_SIZE, -1))
+    # T = tf.reshape(Kab, (kernelsize, kernelsize, -1, noofkernels * GLOBAL_BATCH_SIZE))
+
+    F1_T_out = tf.nn.conv2d(input=F1, filter=T, strides=[1, 1, 1, 1], padding='SAME')
+    F2_T_out = tf.nn.conv2d(input=F2, filter=T, strides=[1, 1, 1, 1], padding='SAME')
 
     # print(F1_T_out) # 1*5*5*896  pytorch=1*7*7*896
     # p, q, r, s = F1_T_out.size()
@@ -66,7 +64,7 @@ def compute_contrastive_features(data_1, data_2, basemodel, gen_model):
     A_list = tf.reshape(F1_T_out, (-1, 350))
     B_list = tf.reshape(F2_T_out, (-1, 350))
 
-    # print(A_list) # 64*350  pytorch=64*686
+    print(A_list) # 64*350  pytorch=64*686
 
     return A_list, B_list, kernel_1, kernel_2
 
@@ -92,6 +90,9 @@ def main():
     target = tf.placeholder(tf.float32, [None])
     c1 = tf.placeholder(tf.float32, [None, args.num_classes])
     c2 = tf.placeholder(tf.float32, [None, args.num_classes])
+
+    # input1 = tf.placeholder(tf.float32, [GLOBAL_BATCH_SIZE, 128, 128, 1])
+    # input2 = tf.placeholder(tf.float32, [GLOBAL_BATCH_SIZE, 128, 128, 1])
 
     A_list, B_list, org_kernel_1, org_kernel_2 = compute_contrastive_features(input1, input2, base_model, gen_model)
 

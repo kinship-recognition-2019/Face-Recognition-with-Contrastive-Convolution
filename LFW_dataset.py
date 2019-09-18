@@ -7,7 +7,7 @@ from PIL import Image
 class LFWDataset():
     def __init__(self):
         self.pairs_path = "dataset/pairs.txt"
-        self.img_path = "dataset/lfw/lfw"
+        self.img_path = "dataset/lfw"
         self.cur = 0
         self.testlist = self.get_lfw_paths(self.img_path)
 
