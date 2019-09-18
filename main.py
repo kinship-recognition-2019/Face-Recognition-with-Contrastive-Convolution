@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 from contrastive_cnn import ConstractiveFourLayers
 from CASIA_dataset import CasiaFaceDataset
-from IFW_dataset import LFWDataset
+from LFW_dataset import LFWDataset
 from eval_metrics import evaluate
 from linear import Linear
 from gen_model import GenModel
@@ -49,11 +49,11 @@ def compute_contrastive_features(data_1, data_2, basemodel, gen_model):
     F2 = tf.reshape(tensor=F2, shape=(-1, h, w, GLOBAL_BATCH_SIZE * featuresdim))
     # print(F1.shape) # 1*5*5*32768
 
-    # noofkernels = 14
-    # kernelsize = 3
-    # T = tf.reshape(Kab, (-1, kernelsize, kernelsize, 32768))
+    noofkernels = 14
+    kernelsize = 3
+    # T = tf.reshape(Kab, (noofkernels, kernelsize, kernelsize, -1))
 
-    kernel = tf.get_variable(name="kernel", shape=[3, 3, GLOBAL_BATCH_SIZE * featuresdim, 14*GLOBAL_BATCH_SIZE], dtype=tf.float32,
+    kernel = tf.get_variable(name="kernel", shape=[kernelsize, kernelsize, GLOBAL_BATCH_SIZE * featuresdim, noofkernels*GLOBAL_BATCH_SIZE], dtype=tf.float32,
                          initializer=tf.contrib.layers.xavier_initializer_conv2d())
     # kernel = tf.get_variable(name="kernel", dtype=tf.float32, initializer=T)
 
@@ -104,10 +104,12 @@ def main():
     hk2 = idreg_model.forward(org_kernel_2)
 
     loss1 = tf.reduce_mean(tf.abs(tf.subtract(target, SAB)))
-    # loss1 = tf.reduce_sum(tf.square(tf.substract(target, SAB)))
-    cross_entropy1 = tf.reduce_mean(-tf.reduce_sum(c1 * tf.log(hk1), reduction_indices=[1]))
-    cross_entropy2 = tf.reduce_mean(-tf.reduce_sum(c2 * tf.log(hk2), reduction_indices=[1]))
-    loss2 = tf.add(cross_entropy1, cross_entropy2) * 0.5
+    # cross_entropy1_1 = tf.reduce_mean(-tf.reduce_sum(target * tf.log(SAB), reduction_indices=[1]))
+    # cross_entropy1_2 = tf.reduce_mean(-tf.reduce_sum(tf.subtract(tf.constant(1, dtype=tf.float32, shape=[GLOBAL_BATCH_SIZE, 1]), target) * tf.subtract(tf.constant(1, dtype=tf.float32, shape=[GLOBAL_BATCH_SIZE, 1]), tf.log(SAB)), reduction_indices=[1]))
+    # loss1 = tf.add(cross_entropy1_1, cross_entropy1_2) * 0.5
+    cross_entropy2_1 = tf.reduce_mean(-tf.reduce_sum(c1 * tf.log(hk1), reduction_indices=[1]))
+    cross_entropy2_2 = tf.reduce_mean(-tf.reduce_sum(c2 * tf.log(hk2), reduction_indices=[1]))
+    loss2 = tf.add(cross_entropy2_1, cross_entropy2_2) * 0.5
     loss = tf.add(loss1, loss2)
 
     optimizer = tf.train.AdamOptimizer(0.01).minimize(loss)
@@ -120,9 +122,9 @@ def main():
             data_1_batch, data_2_batch, c1_batch, c2_batch, target_batch = dataset.get_batch(batch_size=GLOBAL_BATCH_SIZE)
 
             # data_1_cur, data_2_cur, c1_cur, c2_cur, target_cur = sess.run([data_1_batch, data_2_batch, c1_batch, c2_batch, target_batch])
-            _, loss_val = sess.run([optimizer, loss], feed_dict={input1: data_1_batch, input2: data_2_batch, c1: c1_batch, c2: c2_batch, target: target_batch})
+            _, loss_val, loss1_val, loss2_val = sess.run([optimizer, loss, loss1, loss2], feed_dict={input1: data_1_batch, input2: data_2_batch, c1: c1_batch, c2: c2_batch, target: target_batch})
             # print(iteration, time.time()-start_time, loss_val)
-            print("Itera {0} : {1}".format(iteration, loss_val))
+            print("Itera {0} : loss = {1}, loss1 = {2}, loss2 = {3}".format(iteration, loss_val, loss1_val, loss2_val))
 
             if(iteration>0 and iteration % 100 == 0):
                 acc_pool, start_time = [], time.time()
@@ -132,8 +134,8 @@ def main():
                 #     test_1_cur, test_2_cur, label_cur = sess.run([data_1_batch, data_2_batch, label_batch])
                     # out1_a, out1_b, k1, k2 = sess.run(compute_contrastive_features(test_1_batch, test_2_batch, base_model, gen_model))
                     SAB_val  = sess.run([SAB], feed_dict={input1: test_1_batch, input2: test_2_batch})
-                    # print(SAB_val)
-                #
+                    print(SAB_val)
+
                     dists = np.array(SAB_val).reshape((-1, 1))
                     labels = np.array(label_batch)
                     accuracy = evaluate(1.0 - dists, labels)
