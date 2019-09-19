@@ -139,7 +139,7 @@ class CasiaFaceDataset():
             imageB.append(imageB_cur)
             id1.append([id1_cur])
             id2.append([id2_cur])
-            label.append(label_cur)
+            label.append([label_cur])
 
         id1_enc = np.array(self.enc.transform(id1).toarray())
         id2_enc = np.array(self.enc.transform(id2).toarray())

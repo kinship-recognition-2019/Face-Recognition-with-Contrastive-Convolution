@@ -84,10 +84,11 @@ class LFWDataset():
             imageA_cur, imageB_cur, label_cur = self.get_pairs(i)
             imageA.append(imageA_cur)
             imageB.append(imageB_cur)
-            label.append(label_cur)
+            label.append([label_cur])
         self.cur = self.cur + batch_size
 
         label = np.array(label)
+
         return np.array(imageA), np.array(imageB), label
 
 
