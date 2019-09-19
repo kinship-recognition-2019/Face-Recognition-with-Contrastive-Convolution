@@ -135,7 +135,7 @@ def main():
             # print(iteration, time.time()-start_time, loss_val)
             print("Itera {0} : loss = {1}, loss1 = {2}, loss2 = {3}".format(iteration, loss_val, loss1_val, loss2_val))
 
-            if(iteration>0 and iteration % 100 == 0):
+            if(iteration>0 and iteration % 10 == 0):
                 acc_pool, start_time = [], time.time()
                 for i in range(100):
                     test_1_batch, test_2_batch, label_batch = testset.get_batch(batch_size=GLOBAL_BATCH_SIZE)
