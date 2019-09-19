@@ -12,7 +12,7 @@ import argparse
 import os, time
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
-GLOBAL_BATCH_SIZE = 32
+GLOBAL_BATCH_SIZE = 64
 
 
 def compute_contrastive_features(data_1, data_2, basemodel, gen_model):
@@ -129,11 +129,11 @@ def main():
     loss2 = tf.add(cross_entropy_1, cross_entropy_2) * 0.5
     loss = tf.add(loss1, loss2)
 
-    optimizer = tf.train.AdamOptimizer(0.01).minimize(loss)
+    optimizer = tf.train.AdamOptimizer(0.002).minimize(loss)
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-
+        f = open("result.txt", "w")
         for iteration in range(args.iters):
 
             data_1_batch, data_2_batch, c1_batch, c2_batch, target_batch = dataset.get_batch(batch_size=GLOBAL_BATCH_SIZE)
@@ -144,14 +144,16 @@ def main():
                 feed_dict={input1: data_1_batch, input2: data_2_batch, c1: c1_batch, c2: c2_batch, target: target_batch})
             # print(iteration, time.time()-start_time, loss_val)
 
-            print(reg1_val)
-            print(reg2_val)
+            # print(reg1_val)
+            # print(reg2_val)
 
-            print("Itera {0} : loss = {1}, loss1 = {2}, loss2 = {3}".format(iteration, loss_val, loss1_val, loss2_val))
+            # print("Itera {0} : loss = {1}, loss1 = {2}, loss2 = {3}".format(iteration, loss_val, loss1_val, loss2_val))
+            f.write("Itera {0} : loss = {1}, loss1 = {2}, loss2 = {3}\r\n".format(iteration, loss_val, loss1_val, loss2_val))
+            f.flush()
 
-            if(iteration != 0 and iteration % 1 == 0):
+            if(iteration != 0 and iteration % 100 == 0):
                 acc_pool, start_time = [], time.time()
-                for i in range(2):
+                for i in range(50):
                     test_1_batch, test_2_batch, label_batch = testset.get_batch(batch_size=GLOBAL_BATCH_SIZE)
 
                 #     test_1_cur, test_2_cur, label_cur = sess.run([data_1_batch, data_2_batch, label_batch])
@@ -167,7 +169,9 @@ def main():
                     accuracy = evaluate(1.0 - dists, labels)
 
                     acc_pool.append(np.mean(accuracy))
-                print("Acc(%.2f)"%(time.time()-start_time), np.mean(acc_pool), acc_pool)
+                # print("Acc(%.2f)"%(time.time()-start_time), np.mean(acc_pool), acc_pool)
+                f.write("Acc" + str(np.mean(acc_pool)) + str(acc_pool) + str("\r\n"))
+                f.flush()
 
 
 if __name__ == '__main__':
