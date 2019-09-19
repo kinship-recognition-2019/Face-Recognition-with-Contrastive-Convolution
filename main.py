@@ -145,18 +145,21 @@ def main():
             # print(SAB_val)
 
 
-            if(iteration>0 and iteration % 100 == 0):
+            if(iteration != 0 and iteration % 100 == 0):
                 acc_pool, start_time = [], time.time()
                 for i in range(100):
                     test_1_batch, test_2_batch, label_batch = testset.get_batch(batch_size=GLOBAL_BATCH_SIZE)
 
                 #     test_1_cur, test_2_cur, label_cur = sess.run([data_1_batch, data_2_batch, label_batch])
                     # out1_a, out1_b, k1, k2 = sess.run(compute_contrastive_features(test_1_batch, test_2_batch, base_model, gen_model))
-                    SAB_val  = sess.run([SAB], feed_dict={input1: test_1_batch, input2: test_2_batch})
+                    SAB_val = sess.run([SAB], feed_dict={input1: test_1_batch, input2: test_2_batch})
 
                     dists = np.array(SAB_val).reshape((-1, 1))
-                    labels = np.array(label_batch)
+                    # print(dists)
+                    labels = np.array(label_batch).reshape((-1, 1))
+                    # print(labels)
                     accuracy = evaluate(1.0 - dists, labels)
+
                     acc_pool.append(np.mean(accuracy))
                 print("Acc(%.2f)"%(time.time()-start_time), np.mean(acc_pool), acc_pool)
 

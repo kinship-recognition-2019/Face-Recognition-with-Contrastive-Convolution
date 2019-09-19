@@ -30,11 +30,11 @@ class LFWDataset():
             if len(pair) == 3:
                 path0 = os.path.join(self.img_path, pair[0], pair[0] + '_' + '%04d' % int(pair[1]) + '.' + file_ext)
                 path1 = os.path.join(self.img_path, pair[0], pair[0] + '_' + '%04d' % int(pair[2]) + '.' + file_ext)
-                issame = [True]
+                issame = 1
             elif len(pair) == 4:
                 path0 = os.path.join(self.img_path, pair[0], pair[0] + '_' + '%04d' % int(pair[1]) + '.' + file_ext)
                 path1 = os.path.join(self.img_path, pair[2], pair[2] + '_' + '%04d' % int(pair[3]) + '.' + file_ext)
-                issame = [False]
+                issame = 0
             if os.path.exists(path0) and os.path.exists(path1):
                     path_list.append((path0, path1, issame))
                     issame_list.append(issame)
