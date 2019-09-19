@@ -10,7 +10,8 @@ class Regressor():
         # bs, c = x.shape[0], x.shape[1]
         # print(x) # 64*350 pytorch 64*686
         x = self.linear.forward(x)
+        return x
         # print(x) # 64*1
-        x = tf.sigmoid(x)
+        x = tf.nn.sigmoid(x)
         # print(x) # 64*1
         return x

@@ -39,7 +39,7 @@ def compute_contrastive_features(data_1, data_2, basemodel, gen_model):
 
     F1, F2 = data_1, data_2
     Kab = tf.abs(kernel_1 - kernel_2)
-    # print(Kab)  # ?*14*4608
+    # print("Kab", Kab)  # ?*14*4608
 
     # bs, featuresdim, h, w = int(), int(F1.shape[3]), int(F1.shape[1]), int(F1.shape[2])
     featuresdim, h, w = int(F1.shape[3]), int(F1.shape[1]), int(F1.shape[2])
@@ -55,11 +55,12 @@ def compute_contrastive_features(data_1, data_2, basemodel, gen_model):
 
 
     T = tf.reshape(Kab, (kernelsize, kernelsize, featuresdim * GLOBAL_BATCH_SIZE, noofkernels))
+    # print("T", T)
     # T = tf.reshape(Kab, (kernelsize, kernelsize, -1, noofkernels * GLOBAL_BATCH_SIZE))
     # kernel = tf.get_variable(name="T_", shape=[kernelsize, kernelsize, featuresdim * GLOBAL_BATCH_SIZE, noofkernels * GLOBAL_BATCH_SIZE], dtype=tf.float32,
     #                          initializer=tf.contrib.layers.xavier_initializer_conv2d())
-    F1_T_out = group_conv_op(input_op=F1, kernel=T, dh=1, dw=1, groups=GLOBAL_BATCH_SIZE)
-    F2_T_out = group_conv_op(input_op=F2, kernel=T, dh=1, dw=1, groups=GLOBAL_BATCH_SIZE)
+    F1_T_out, inputs1 = group_conv_op(input_op=F1, kernel=T, dh=1, dw=1, groups=GLOBAL_BATCH_SIZE)
+    F2_T_out, inputs2 = group_conv_op(input_op=F2, kernel=T, dh=1, dw=1, groups=GLOBAL_BATCH_SIZE)
     # F1_T_out = tf.nn.conv2d(input=F1, filter=T, strides=[1, 1, 1, 1], padding='SAME')
     # F2_T_out = tf.nn.conv2d(input=F2, filter=T, strides=[1, 1, 1, 1], padding='SAME')
     F1_T_out = tf.reshape(F1_T_out, (1, h, w, -1))
@@ -121,9 +122,11 @@ def main():
     # cross_entropy1_2 = tf.reduce_mean(-tf.reduce_sum(tf.subtract(tf.constant(1, dtype=tf.float32, shape=[GLOBAL_BATCH_SIZE, 1]), target) * tf.subtract(tf.constant(1, dtype=tf.float32, shape=[GLOBAL_BATCH_SIZE, 1]), tf.log(SAB)), reduction_indices=[1]))
     # loss1 = tf.add(cross_entropy1_1, cross_entropy1_2) * 0.5
     # loss2 = tf.losses.softmax_cross_entropy(onehot_labels=c1, logits=hk1) + tf.losses.softmax_cross_entropy(onehot_labels=c2, logits=hk2)
-    cross_entropy2_1 = tf.reduce_mean(-tf.reduce_sum(c1 * tf.log(hk1), reduction_indices=[1]))
-    cross_entropy2_2 = tf.reduce_mean(-tf.reduce_sum(c2 * tf.log(hk2), reduction_indices=[1]))
-    loss2 = tf.add(cross_entropy2_1, cross_entropy2_2) * 0.5
+    # cross_entropy2_1 = tf.reduce_mean(-tf.reduce_sum(c1 * tf.log(hk1), reduction_indices=[1]))
+    cross_entropy_1 = tf.losses.softmax_cross_entropy(onehot_labels=c1, logits=hk1)
+    cross_entropy_2 = tf.losses.softmax_cross_entropy(onehot_labels=c2, logits=hk2)
+    # cross_entropy2_2 = tf.reduce_mean(-tf.reduce_sum(c2 * tf.log(hk2), reduction_indices=[1]))
+    loss2 = tf.add(cross_entropy_1, cross_entropy_2) * 0.5
     loss = tf.add(loss1, loss2)
 
     optimizer = tf.train.AdamOptimizer(0.01).minimize(loss)
@@ -137,23 +140,26 @@ def main():
             # print(target_batch.shape)
 
             # data_1_cur, data_2_cur, c1_cur, c2_cur, target_cur = sess.run([data_1_batch, data_2_batch, c1_batch, c2_batch, target_batch])
-            _, loss_val, loss1_val, loss2_val = sess.run([optimizer, loss, loss1, loss2], feed_dict={input1: data_1_batch, input2: data_2_batch, c1: c1_batch, c2: c2_batch, target: target_batch})
+            _, loss_val, loss1_val, loss2_val, reg1_val, reg2_val = sess.run([optimizer, loss, loss1, loss2, reg_1, reg_2],
+                feed_dict={input1: data_1_batch, input2: data_2_batch, c1: c1_batch, c2: c2_batch, target: target_batch})
             # print(iteration, time.time()-start_time, loss_val)
+
+            print(reg1_val)
+            print(reg2_val)
+
             print("Itera {0} : loss = {1}, loss1 = {2}, loss2 = {3}".format(iteration, loss_val, loss1_val, loss2_val))
 
-            # print(target_val)
-            # print(SAB_val)
-
-
-            if(iteration != 0 and iteration % 100 == 0):
+            if(iteration != 0 and iteration % 1 == 0):
                 acc_pool, start_time = [], time.time()
-                for i in range(100):
+                for i in range(2):
                     test_1_batch, test_2_batch, label_batch = testset.get_batch(batch_size=GLOBAL_BATCH_SIZE)
 
                 #     test_1_cur, test_2_cur, label_cur = sess.run([data_1_batch, data_2_batch, label_batch])
                     # out1_a, out1_b, k1, k2 = sess.run(compute_contrastive_features(test_1_batch, test_2_batch, base_model, gen_model))
-                    SAB_val = sess.run([SAB], feed_dict={input1: test_1_batch, input2: test_2_batch})
-
+                    SAB_val, reg1_val, reg2_val = sess.run([SAB, reg_1, reg_2], feed_dict={input1: test_1_batch, input2: test_2_batch})
+                    # print("SAB", SAB_val)
+                    # print("1v", reg1_val)
+                    # print("2v", reg2_val)
                     dists = np.array(SAB_val).reshape((-1, 1))
                     # print(dists)
                     labels = np.array(label_batch).reshape((-1, 1))

@@ -18,6 +18,7 @@ class IdentityRegressor():
         x = tf.nn.relu(self.fc1.forward(x))
         # print(x) # 64*256
         x = self.fc2.forward(x)
+        # return x
         x = tf.nn.softmax(x)
         # print(x) # 64*10575
         return x
