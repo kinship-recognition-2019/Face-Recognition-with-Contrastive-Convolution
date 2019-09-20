@@ -129,7 +129,7 @@ def main():
     loss2 = tf.add(cross_entropy_1, cross_entropy_2) * 0.5
     loss = tf.add(loss1, loss2)
 
-    optimizer = tf.train.AdamOptimizer(0.002).minimize(loss)
+    optimizer = tf.train.GradientDescentOptimizer(0.002).minimize(loss)
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
@@ -144,8 +144,9 @@ def main():
                 feed_dict={input1: data_1_batch, input2: data_2_batch, c1: c1_batch, c2: c2_batch, target: target_batch})
             # print(iteration, time.time()-start_time, loss_val)
 
-            # print(reg1_val)
-            # print(reg2_val)
+            # print("Iteration", iteration)
+            # print("reg1_val", reg1_val)
+            # print("reg2_val", reg2_val)
 
             # print("Itera {0} : loss = {1}, loss1 = {2}, loss2 = {3}".format(iteration, loss_val, loss1_val, loss2_val))
             f.write("Itera {0} : loss = {1}, loss1 = {2}, loss2 = {3}\r\n".format(iteration, loss_val, loss1_val, loss2_val))
@@ -172,6 +173,7 @@ def main():
                 # print("Acc(%.2f)"%(time.time()-start_time), np.mean(acc_pool), acc_pool)
                 f.write("Acc" + str(np.mean(acc_pool)) + str(acc_pool) + str("\r\n"))
                 f.flush()
+        f.close()
 
 
 if __name__ == '__main__':
