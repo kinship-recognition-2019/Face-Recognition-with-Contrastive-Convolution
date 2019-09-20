@@ -12,7 +12,7 @@ import argparse
 import os, time
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
-GLOBAL_BATCH_SIZE = 64
+GLOBAL_BATCH_SIZE = 32
 
 
 def compute_contrastive_features(data_1, data_2, basemodel, gen_model):
@@ -122,14 +122,14 @@ def main():
     # cross_entropy1_2 = tf.reduce_mean(-tf.reduce_sum(tf.subtract(tf.constant(1, dtype=tf.float32, shape=[GLOBAL_BATCH_SIZE, 1]), target) * tf.subtract(tf.constant(1, dtype=tf.float32, shape=[GLOBAL_BATCH_SIZE, 1]), tf.log(SAB)), reduction_indices=[1]))
     # loss1 = tf.add(cross_entropy1_1, cross_entropy1_2) * 0.5
     # loss2 = tf.losses.softmax_cross_entropy(onehot_labels=c1, logits=hk1) + tf.losses.softmax_cross_entropy(onehot_labels=c2, logits=hk2)
-    # cross_entropy2_1 = tf.reduce_mean(-tf.reduce_sum(c1 * tf.log(hk1), reduction_indices=[1]))
-    cross_entropy_1 = tf.losses.softmax_cross_entropy(onehot_labels=c1, logits=hk1)
-    cross_entropy_2 = tf.losses.softmax_cross_entropy(onehot_labels=c2, logits=hk2)
-    # cross_entropy2_2 = tf.reduce_mean(-tf.reduce_sum(c2 * tf.log(hk2), reduction_indices=[1]))
+    cross_entropy_1 = tf.reduce_mean(-tf.reduce_sum(c1 * tf.log(hk1), reduction_indices=[1]))
+    # cross_entropy_1 = tf.losses.softmax_cross_entropy(onehot_labels=c1, logits=hk1)
+    # cross_entropy_2 = tf.losses.softmax_cross_entropy(onehot_labels=c2, logits=hk2)
+    cross_entropy_2 = tf.reduce_mean(-tf.reduce_sum(c2 * tf.log(hk2), reduction_indices=[1]))
     loss2 = tf.add(cross_entropy_1, cross_entropy_2) * 0.5
     loss = tf.add(loss1, loss2)
 
-    optimizer = tf.train.GradientDescentOptimizer(0.002).minimize(loss)
+    optimizer = tf.train.GradientDescentOptimizer(0.001).minimize(loss)
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
