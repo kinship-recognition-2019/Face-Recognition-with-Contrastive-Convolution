@@ -144,7 +144,7 @@ class CasiaFaceDataset():
         id1_enc = np.array(self.enc.transform(id1).toarray())
         id2_enc = np.array(self.enc.transform(id2).toarray())
         label = np.array(label)
-        print("id1", id1)
+        # print("id1", id1)
 
         return np.array(imageA), np.array(imageB), id1_enc, id2_enc, label
 
