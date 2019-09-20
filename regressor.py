@@ -13,6 +13,6 @@ class Regressor():
         x = self.linear.forward(x)
         # return x
         # print(x) # 64*1
-        # x = tf.nn.sigmoid(x)
+        x = tf.nn.sigmoid(x)
         # print(x) # 64*1
         return x

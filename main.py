@@ -148,7 +148,7 @@ def main():
             # print("reg1_val", reg1_val)
             # print("reg2_val", reg2_val)
 
-            # print("Itera {0} : loss = {1}, loss1 = {2}, loss2 = {3}".format(iteration, loss_val, loss1_val, loss2_val))
+            print("Itera {0} : loss = {1}, loss1 = {2}, loss2 = {3}".format(iteration, loss_val, loss1_val, loss2_val))
             f.write("Itera {0} : loss = {1}, loss1 = {2}, loss2 = {3}\r\n".format(iteration, loss_val, loss1_val, loss2_val))
             f.flush()
 
@@ -170,7 +170,7 @@ def main():
                     accuracy = evaluate(1.0 - dists, labels)
 
                     acc_pool.append(np.mean(accuracy))
-                # print("Acc(%.2f)"%(time.time()-start_time), np.mean(acc_pool), acc_pool)
+                print("Acc(%.2f)"%(time.time()-start_time), np.mean(acc_pool), acc_pool)
                 f.write("Acc" + str(np.mean(acc_pool)) + str(acc_pool) + str("\r\n"))
                 f.flush()
         f.close()
