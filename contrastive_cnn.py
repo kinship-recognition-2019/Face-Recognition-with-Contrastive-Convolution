@@ -6,38 +6,23 @@ from conv_functions import conv_op
 class ConstractiveFourLayers():
 
     def forward(self, x, scope):
-        # kernel1 = tf.get_variable(name="kernel1_"+self.scope, shape=[3, 3, 1, 64], dtype=tf.float32,
-        #                           initializer=tf.contrib.layers.xavier_initializer_conv2d())
-        # conv1 = tf.nn.conv2d(x, filter=kernel1, strides=[1, 1, 1, 1], padding='SAME')
+        conv1 = conv_op(input_op=x, name="conv1_"+scope, kh=3, kw=3, n_out=64, dh=1, dw=1)
+        pool1 = tf.nn.max_pool(conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
+        relu1 = tf.nn.relu(pool1)
 
-        conv1 = conv_op(x, "conv1_" + scope, 3, 3, 64, 1, 1)
-        # print(conv1)
-        relu1 = tf.nn.relu(conv1)
-        pool1 = tf.nn.max_pool(relu1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
-        # print(pool1)
+        conv2 = conv_op(input_op=relu1, name="conv2_"+scope, kh=3, kw=3, n_out=128, dh=1, dw=1)
+        pool2 = tf.nn.max_pool(conv2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
+        relu2 = tf.nn.relu(pool2)
 
-        # kernel2 = tf.get_variable(name="kernel2_"+self.scope, shape=[3, 3, 64, 128], dtype=tf.float32,
-        #                           initializer=tf.contrib.layers.xavier_initializer_conv2d())
-        # conv2 = tf.nn.conv2d(pool1, filter=kernel2, strides=[1, 1, 1, 1], padding='SAME')
-        conv2 = conv_op(pool1, "conv2_" + scope, 3, 3, 128, 1, 1)
-        relu2 = tf.nn.relu(conv2)
-        pool2 = tf.nn.max_pool(relu2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
+        conv3 = conv_op(input_op=relu2, name="conv3_"+scope, kh=3, kw=3, n_out=256, dh=1, dw=1)
+        pool3 = tf.nn.max_pool(conv3, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
+        relu3 = tf.nn.relu(pool3)
 
-        # kernel3 = tf.get_variable(name="kernel3_"+self.scope, shape=[3, 3, 128, 256], dtype=tf.float32,
-        #                           initializer=tf.contrib.layers.xavier_initializer_conv2d())
-        # conv3 = tf.nn.conv2d(pool2, filter=kernel3, strides=[1, 1, 1, 1], padding='SAME')
-        conv3 = conv_op(pool2, "conv3_" + scope, 3, 3, 256, 1, 1)
-        relu3 = tf.nn.relu(conv3)
-        pool3 = tf.nn.max_pool(relu3, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
+        conv4 = conv_op(input_op=relu3, name="conv4_"+scope, kh=3, kw=3, n_out=512, dh=1, dw=1)
+        pool4 = tf.nn.max_pool(conv4, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
+        relu4 = tf.nn.relu(pool4)
 
-        # kernel4 = tf.get_variable(name="kernel4_"+self.scope, shape=[3, 3, 256, 512], dtype=tf.float32,
-        #                           initializer=tf.contrib.layers.xavier_initializer_conv2d())
-        # conv4 = tf.nn.conv2d(pool3, filter=kernel4, strides=[1, 1, 1, 1], padding='SAME')
-        conv4 = conv_op(pool3, "conv4_" + scope, 3, 3, 512, 1, 1)
-        relu4 = tf.nn.relu(conv4)
-        pool4 = tf.nn.max_pool(relu4, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
-        # print(pool4)
-        return pool4
+        return relu4
 
 
 if __name__ == '__main__':
