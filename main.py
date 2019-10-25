@@ -59,7 +59,7 @@ def compute_contrastive_features(data_1, data_2, basemodel, gen_model):
 
     F1_T_out = group_conv_op(input_op=F1, kernel=T, dh=1, dw=1) # 14*5*5*32
     F2_T_out = group_conv_op(input_op=F2, kernel=T, dh=1, dw=1)
-    print("F1_T_out", F1_T_out)
+    # print("F1_T_out", F1_T_out)
 
     # F1_T_out = tf.reshape(F1_T_out, (1, h, w, -1))
     # F2_T_out = tf.reshape(F2_T_out, (1, h, w, -1))
