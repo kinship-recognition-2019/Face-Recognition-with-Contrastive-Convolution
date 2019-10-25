@@ -1,7 +1,5 @@
 import tensorflow as tf
-from conv_functions import conv_op
 from linear import Linear
-
 
 def extract_patches(x, patch_size):
     cur = tf.extract_image_patches(images=x, ksizes=[1, patch_size, patch_size, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding="VALID")
