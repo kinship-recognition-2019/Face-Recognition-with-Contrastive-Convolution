@@ -23,14 +23,8 @@ class GenModel():
         S0 = x
 
         conv1 = conv_op(input_op=S0, name="S0"+scope, kh=3, kw=3, n_out=self.f_size, dh=1, dw=1)
-        # kernel1_ = tf.get_variable(name="kernel1_"+scope, shape=[3, 3, self.f_size, self.f_size], dtype=tf.float32,
-        #                           initializer=tf.contrib.layers.xavier_initializer_conv2d())
-        # conv1 = tf.nn.conv2d(S0, filter=kernel1_, strides=[1, 1, 1, 1], padding='VALID')
         S1 = tf.nn.relu(conv1)
 
-        # kernel2_ = tf.get_variable(name="kernel2_"+scope, shape=[3, 3, self.f_size, self.f_size], dtype=tf.float32,
-        #                           initializer=tf.contrib.layers.xavier_initializer_conv2d())
-        # conv2 = tf.nn.conv2d(S1, filter=kernel2_, strides=[1, 1, 1, 1], padding='VALID')
         conv2 = conv_op(input_op=S1, name="S1"+scope, kh=3, kw=3, n_out=self.f_size, dh=1, dw=1)
         S2 = tf.nn.relu(conv2)
 
@@ -43,8 +37,6 @@ class GenModel():
         p3 = extract_patches(S2, 1)
         # print("p3", p3) # bs*1*512
 
-        # kernel4_ = tf.get_variable(name="kernel4_"+scope, shape=[1, 1, self.f_size, self.f_size], dtype=tf.float32,
-        #                           initializer=tf.contrib.layers.xavier_initializer_conv2d())
         kk1 = tf.nn.relu(self.g1.forward(p1))
         # print("kk1", kk1) # bs*9*4608
 

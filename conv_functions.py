@@ -10,26 +10,11 @@ def conv_op(input_op, name, kh, kw, n_out, dh, dw):
 
 
 def group_conv_op(input_op, kernel, dh, dw):
-
     conv_group = []
-    # print(kernel.shape[0])
+
     for i in range(kernel.shape[0]):
         conv_cur = tf.nn.conv2d(input_op, kernel[i], (1, dh, dw, 1), padding='SAME')
         conv_group.append(conv_cur)
-        # print(i)
-    # print(conv_group)
+
     return conv_group
 
-
-# if __name__ == '__main__':
-#     norm = np.random.rand(10, 128, 128, 1)
-#
-#     sess = tf.Session()
-#
-#     x = tf.placeholder(tf.float32, [None, 128, 128, 1])
-#     model =
-#     ccnn = model.forward(x, "zz")
-#
-#     sess.run(tf.global_variables_initializer())
-#     print(sess.run(ccnn, feed_dict={x: norm}))
-#     print(ccnn)

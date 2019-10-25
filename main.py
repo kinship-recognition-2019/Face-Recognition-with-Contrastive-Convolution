@@ -41,13 +41,6 @@ def compute_contrastive_features(data_1, data_2, basemodel, gen_model):
     Kab = tf.abs(kernel_1 - kernel_2)
     # print("Kab", Kab)  # ?*14*4608
 
-    featuresdim, h, w = int(F1.shape[3]), int(F1.shape[1]), int(F1.shape[2])
-    # print(featuresdim) # 512
-
-    # F1 = tf.reshape(tensor=F1, shape=(-1, h, w, GLOBAL_BATCH_SIZE * featuresdim))
-    # F2 = tf.reshape(tensor=F2, shape=(-1, h, w, GLOBAL_BATCH_SIZE * featuresdim))
-    # print(F1.shape) # 1*5*5*16384
-
     noofkernels = 14
     kernelsize = 3
 
@@ -59,19 +52,9 @@ def compute_contrastive_features(data_1, data_2, basemodel, gen_model):
 
     F1_T_out = group_conv_op(input_op=F1, kernel=T, dh=1, dw=1) # 14*5*5*32
     F2_T_out = group_conv_op(input_op=F2, kernel=T, dh=1, dw=1)
-    # print("F1_T_out", F1_T_out)
-
-    # F1_T_out = tf.reshape(F1_T_out, (1, h, w, -1))
-    # F2_T_out = tf.reshape(F2_T_out, (1, h, w, -1))
-    # print(F1_T_out)
-
-    # print(F1_T_out) # 1*5*5*896  pytorch=1*7*7*896
-    # p, q, r, s = F1_T_out.size()
 
     A_list = tf.reshape(F1_T_out, (-1, 14*5*5*32))
     B_list = tf.reshape(F2_T_out, (-1, 14*5*5*32))
-
-    # print(A_list) # 64*350  pytorch=64*686
 
     return A_list, B_list, kernel_1, kernel_2
 
@@ -111,15 +94,11 @@ def main():
     # print("SAB", SAB)
 
     loss1 = tf.losses.sigmoid_cross_entropy(multi_class_labels=target, logits=SAB)
-    # cross_entropy1_1 = tf.reduce_mean(-tf.reduce_sum(target * tf.log(SAB), reduction_indices=[1]))
-    # cross_entropy1_2 = tf.reduce_mean(-tf.reduce_sum(tf.subtract(tf.constant(1, dtype=tf.float32, shape=[GLOBAL_BATCH_SIZE, 1]), target) * tf.subtract(tf.constant(1, dtype=tf.float32, shape=[GLOBAL_BATCH_SIZE, 1]), tf.log(SAB)), reduction_indices=[1]))
-    # loss1 = tf.add(cross_entropy1_1, cross_entropy1_2) * 0.5
-    # loss2 = tf.losses.softmax_cross_entropy(onehot_labels=c1, logits=hk1) + tf.losses.softmax_cross_entropy(onehot_labels=c2, logits=hk2)
+
     cross_entropy_1 = tf.reduce_mean(-tf.reduce_sum(c1 * tf.log(hk1), reduction_indices=[1]))
-    # cross_entropy_1 = tf.losses.softmax_cross_entropy(onehot_labels=c1, logits=hk1)
-    # cross_entropy_2 = tf.losses.softmax_cross_entropy(onehot_labels=c2, logits=hk2)
     cross_entropy_2 = tf.reduce_mean(-tf.reduce_sum(c2 * tf.log(hk2), reduction_indices=[1]))
     loss2 = tf.add(cross_entropy_1, cross_entropy_2) * 0.5
+
     loss = tf.add(loss1, loss2)
 
     optimizer = tf.train.GradientDescentOptimizer(0.001).minimize(loss)
@@ -166,35 +145,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    # data1 = tf.random_normal([1, 5, 5, 32768], mean=0.0, stddev=1.0, dtype=tf.float32, seed=None, name=None)
-    # data1 = tf.random_normal([32, 128, 128, 1], mean=0.0,stddev=1.0,dtype=tf.float32,seed=None,name=None)
-    # data2 = tf.random_normal([32, 128, 128, 1], mean=0.0, stddev=1.0, dtype=tf.float32, seed=None, name=None)
-    #
-    # sess = tf.Session()
-    #
-    #
-    # base_model = ConstractiveFourLayers()
-    # genarator_model = GenModel(512)
-    # A_list, B_list, org_kernel_1, org_kernel_2 = compute_contrastive_features(data1, data2, base_model, genarator_model)
-    # reg_model = Regressor(350) # pytorch = 686
-    # print(A_list)
-    # print(reg_model.forward(A_list))
-    #
-    # idreg_model = IdentityRegressor(14*512*3*3, 10575)
-    # hk1 = idreg_model.forward(org_kernel_1)
-    # reg_model.forward()
-
-    # process = genarator_model.forward(base_model.forward(data1, "p"), "pp")
-
-    # sess.run(tf.global_variables_initializer())
-    # print(sess.run(ans))
-
-    # print(ans.shape)
-
-    # a = tf.constant([1, 2, 3])
-    # print(a.shape)
-    # print(tf.squeeze(a, 0))
-
-
-
-
