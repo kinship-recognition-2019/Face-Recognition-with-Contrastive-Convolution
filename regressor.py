@@ -7,7 +7,8 @@ class Regressor():
         self.linear = Linear("linear", n, 1)
 
     def forward(self, x):
-        # bs, c = x.shape[0], x.shape[1]
+        bs, c = x.shape[0], x.shape[1]
+        print(bs, c)
         # print(x) # 64*350 pytorch 64*686
         # return x
         x = self.linear.forward(x)
