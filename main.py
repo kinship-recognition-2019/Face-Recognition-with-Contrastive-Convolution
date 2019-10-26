@@ -1,146 +1,211 @@
-import tensorflow as tf
-import numpy as np
-from contrastive_cnn import ConstractiveFourLayers
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from torchvision import transforms
+
 from CASIA_dataset import CasiaFaceDataset
 from LFW_dataset import LFWDataset
-from eval_metrics import evaluate
+
+from base_model import Network4Layers
 from gen_model import GenModel
-from regressor import Regressor
-from identity_regressor import IdentityRegressor
-from conv_functions import group_conv_op
+from reg_model import Regressor
+from idreg_model import Identity_Regressor
+from eval_metrics import evaluate
+
+import numpy as np
 import argparse
-import os, time
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
-GLOBAL_BATCH_SIZE = 32
+f = open('result.txt', 'w')
 
 
-def compute_contrastive_features(data_1, data_2, basemodel, gen_model):
+def compute_contrastive_features(data_1, data_2, basemodel, genmodel, device):
+    data_1, data_2 = (data_1).to(device), (data_2).to(device)
 
-    data_1 = basemodel.forward(data_1, "data_1")
-    data_2 = basemodel.forward(data_2, "data_2")
-    # print(data_1) # ?*5*5*512
+    data_1 = basemodel(data_1)
+    data_2 = basemodel(data_2)
 
-    kernel_1 = gen_model.forward(data_1, "kernel_1")
-    kernel_2 = gen_model.forward(data_2, "kernel_2")
-    # print(kernel_1) # ?*14*4608
+    kernel_1 = genmodel(data_1).to(device)
+    kernel_2 = genmodel(data_2).to(device)
 
-    norm_kernel1 = tf.norm(kernel_1, 2, 2)
-    norm_kernel2 = tf.norm(kernel_2, 2, 2)
-    # print(norm_kernel1) # ?*14
-
-    norm_kernel1_1 = tf.expand_dims(norm_kernel1, 2, name=None)
-    norm_kernel2_2 = tf.expand_dims(norm_kernel2, 2, name=None)
-    # print(norm_kernel1_1) # ?*14*1
-
+    norm_kernel1 = torch.norm(kernel_1, 2, 2)
+    norm_kernel2 = torch.norm(kernel_2, 2, 2)
+    norm_kernel1_1 = torch.unsqueeze(norm_kernel1, 2)
+    norm_kernel2_2 = torch.unsqueeze(norm_kernel2, 2)
     kernel_1 = kernel_1 / norm_kernel1_1
     kernel_2 = kernel_2 / norm_kernel2_2
-    # print(kernel_1) # ?*14*4608
 
     F1, F2 = data_1, data_2
-    Kab = tf.abs(kernel_1 - kernel_2)
-    # print("Kab", Kab)  # ?*14*4608
+
+    Kab = torch.abs(kernel_1 - kernel_2)
+
+    bs, featuresdim, h, w = F1.size()
+
+    F1 = F1.view(1, bs * featuresdim, h, w)
+    F2 = F2.view(1, bs * featuresdim, h, w)
 
     noofkernels = 14
     kernelsize = 3
 
-    # T = tf.reshape(Kab, (kernelsize, kernelsize, featuresdim * GLOBAL_BATCH_SIZE, noofkernels))
-    T = tf.reshape(Kab, (noofkernels, kernelsize, kernelsize, 512, GLOBAL_BATCH_SIZE)) # 14*3*3*512*32
+    T = Kab.view(noofkernels * bs, -1, kernelsize, kernelsize)
 
-    # print("F1", F1)
-    # print("T", T)
+    F1_T_out = F.conv2d(input=F1, weight=T, stride=1, padding=2, groups=bs)
+    F2_T_out = F.conv2d(input=F2, weight=T, stride=1, padding=2, groups=bs)
 
-    F1_T_out = group_conv_op(input_op=F1, kernel=T, dh=1, dw=1) # 14*5*5*32
-    F2_T_out = group_conv_op(input_op=F2, kernel=T, dh=1, dw=1)
-
-    A_list = tf.reshape(F1_T_out, (-1, 14*5*5*32))
-    B_list = tf.reshape(F2_T_out, (-1, 14*5*5*32))
+    A_list = F1_T_out.view(bs, -1)
+    B_list = F2_T_out.view(bs, -1)
 
     return A_list, B_list, kernel_1, kernel_2
 
 
+def adjust_learning_rate(optimizer, epoch):
+    for param_group in optimizer.param_groups:
+        if 100000 < epoch < 140000:
+            print('Learning rate is 0.01')
+            param_group['lr'] = 0.01
+        elif epoch > 140000:
+            print('Learning rate is 0.001')
+            param_group['lr'] = 0.001
+
+
+def train(base_model, gen_model, reg_model, idreg_model, device, train_loader, optimizer, criterion1, criterion2, iter):
+    gen_model.train()
+    reg_model.train()
+    idreg_model.train()
+
+    for batch_idx, (data_1, data_2, c1, c2, target) in enumerate(train_loader):
+        data_1, data_2 = (data_1).to(device), (data_2).to(device)
+        c1, c2 = torch.from_numpy(np.asarray(c1)).to(device), torch.from_numpy(np.asarray(c2)).to(device)
+        target = torch.from_numpy(np.asarray(target)).to(device)
+
+        target = target.float().unsqueeze(1)
+
+        optimizer.zero_grad()
+
+        A_list, B_list, org_kernel_1, org_kernel_2 = compute_contrastive_features(data_1, data_2, base_model, gen_model, device)
+        reg_1 = reg_model(A_list)
+        reg_2 = reg_model(B_list)
+        SAB = (reg_1 + reg_2) / 2.0
+
+        loss1 = criterion1(SAB, target)
+
+        hk1 = idreg_model(org_kernel_1)
+        hk2 = idreg_model(org_kernel_2)
+        loss2 = 0.5 * (criterion2(hk1, c1) + criterion2(hk2, c2))
+
+        loss = loss2 + loss1
+
+        loss.backward()
+        print('Iteration'+str(iter), 'Batch'+str(batch_idx), "loss=", loss.item(), "loss1=", loss1.item(), "loss2=", loss2.item())
+        f.write('Iteration'+str(iter)+' Batch'+str(batch_idx)+" loss="+str(loss.item())+" loss1="+str(loss1.item())+" loss2="+str(loss2.item()))
+        f.flush()
+
+
+def test(test_loader, basemodel, genmodel, reg_model, device):
+    basemodel.eval()
+
+    labels, distance, distances = [], [], []
+
+    with torch.no_grad():
+        for batch_idx, (data_a, data_b, label) in enumerate(test_loader):
+            data_a, data_b = data_a.to(device), data_b.to(device)
+
+            out1_a, out1_b, k1, k2 = compute_contrastive_features(data_a, data_b, basemodel, genmodel, device)
+            SA = reg_model(out1_a)
+            SB = reg_model(out1_b)
+            SAB = (SA + SB) / 2.0
+
+            SAB = torch.squeeze(SAB, 1)
+
+            distances.append(SAB.data.cpu().numpy())
+
+            labels.append(label.data.cpu().numpy())
+
+        labels = np.array([sublabel for label in labels for sublabel in label])
+        distances = np.array([subdist for dist in distances for subdist in dist])
+
+        accuracy = evaluate(1 - distances, labels)
+
+        return np.mean(accuracy)
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Tensorflow Contrastive Convolution")
-    parser.add_argument('--num_classes', default=10575, type=int,
-                        metavar='N', help='number of classes (default: 5749)')
-    parser.add_argument('--iters', type=int, default = 200000, metavar='N',
+    parser = argparse.ArgumentParser(description='PyTorch Contrastive Convolution for FR')
+    parser.add_argument('--batch_size', type=int, default=64, metavar='N',
+                        help='input batch size for training (default: 64)')
+
+    parser.add_argument('--epochs', type=int, default=80, metavar='N',
+                        help='number of epochs to train (default: 10)')
+    parser.add_argument('--iters', type=int, default=200000, metavar='N',
                         help='number of iterations to train (default: 10)')
+    parser.add_argument('--lr', type=float, default=0.1, metavar='LR',
+                        help='learning rate (default: 0.01)')
+    parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
+                        help='SGD momentum (default: 0.5)')
+    parser.add_argument('--no-cuda', action='store_true', default=False,
+                        help='disables CUDA training')
+    parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
+                        help='manual epoch number (useful on restarts)')
+    parser.add_argument('--casia_img_path', type=str,
+                        default='D:/Silvia/大学/大三上/其他/大创/Face-Recognition-with-Contrastive-Convolution/dataset/CASIA-WebFace/',
+                        help='path to casia')
+    parser.add_argument('--casia_list_path', type=str,
+                        default='casialist.txt',
+                        help='path to casialist')
+    parser.add_argument('--lfw-img-path', type=str,
+                        default='D:/Silvia/大学/大三上/其他/大创/Face-Recognition-with-Contrastive-Convolution/dataset/lfw',
+                        help='path to dataset')
+    parser.add_argument('--lfw_pairs_path', type=str, default='lfw_pairs.txt',
+                        help='path to pairs file')
+    parser.add_argument('--test_batch_size', type=int, default=128, metavar='BST',
+                        help='input batch size for testing (default: 1000)')
+    parser.add_argument('--num_classes', default=10575, type=int,
+                        metavar='N', help='number of classes (default: 10574)')
+
     args = parser.parse_args()
 
-    dataset = CasiaFaceDataset()
-    testset = LFWDataset()
+    use_cuda = not args.no_cuda and torch.cuda.is_available()
 
-    base_model = ConstractiveFourLayers()
-    gen_model = GenModel(512)
-    reg_model = Regressor(350*32)
-    idreg_model = IdentityRegressor(14*512*3*3, args.num_classes)
+    device = torch.device("cuda" if use_cuda else "cpu")
 
-    input1 = tf.placeholder(tf.float32, [None, 128, 128, 1])
-    input2 = tf.placeholder(tf.float32, [None, 128, 128, 1])
-    target = tf.placeholder(tf.float32, [None, 1])
-    c1 = tf.placeholder(tf.float32, [None, args.num_classes])
-    c2 = tf.placeholder(tf.float32, [None, args.num_classes])
+    kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 
-    A_list, B_list, org_kernel_1, org_kernel_2 = compute_contrastive_features(input1, input2, base_model, gen_model)
+    test_transform = transforms.Compose([
+        transforms.Grayscale(num_output_channels=1),
+        transforms.Resize(128),
+        transforms.ToTensor()])
+    test_dataset = LFWDataset(img_path=args.lfw_img_path, pairs_path=args.lfw_pairs_path, transform=test_transform)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
 
-    reg_1 = reg_model.forward(A_list)
-    reg_2 = reg_model.forward(B_list)
+    train_transform = transforms.Compose([
+        transforms.Resize(128),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor()])
+    train_dataset = CasiaFaceDataset(img_path=args.casia_img_path, list_path=args.casia_list_path,
+                                     noofpairs=args.batch_size, transform=train_transform)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
 
-    SAB = tf.add(reg_1, reg_2) / 2.0
+    base_model = Network4Layers().to(device)
+    gen_model = GenModel(512).to(device)
+    reg_model = Regressor(686).to(device)
+    idreg_model = Identity_Regressor(14*512*3*3, args.num_classes).to(device)
+    params = list(base_model.parameters())+list(gen_model.parameters())+list(reg_model.parameters())+list(idreg_model.parameters())
 
-    hk1 = idreg_model.forward(org_kernel_1)
-    hk2 = idreg_model.forward(org_kernel_2)
-    # print("target", target)
-    # print("SAB", SAB)
+    optimizer = optim.SGD(params, lr=args.lr, momentum=args.momentum)
 
-    loss1 = tf.losses.sigmoid_cross_entropy(multi_class_labels=target, logits=SAB)
+    criterion2 = nn.CrossEntropyLoss().to(device)
+    criterion1 = nn.BCELoss().to(device)
 
-    cross_entropy_1 = tf.reduce_mean(-tf.reduce_sum(c1 * tf.log(hk1), reduction_indices=[1]))
-    cross_entropy_2 = tf.reduce_mean(-tf.reduce_sum(c2 * tf.log(hk2), reduction_indices=[1]))
-    loss2 = tf.add(cross_entropy_1, cross_entropy_2) * 0.5
+    for iter in range(args.start_epoch + 1, args.iters + 1):
+        print(iter)
+        adjust_learning_rate(optimizer, iter)
 
-    loss = tf.add(loss1, loss2)
-
-    optimizer = tf.train.GradientDescentOptimizer(0.001).minimize(loss)
-
-    with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
-        f = open("result.txt", "w")
-        for iteration in range(args.iters):
-
-            data_1_batch, data_2_batch, c1_batch, c2_batch, target_batch = dataset.get_batch(batch_size=GLOBAL_BATCH_SIZE)
-            # print(target_batch.shape)
-
-            # data_1_cur, data_2_cur, c1_cur, c2_cur, target_cur = sess.run([data_1_batch, data_2_batch, c1_batch, c2_batch, target_batch])
-            _, loss_val, loss1_val, loss2_val, reg1_val, reg2_val = sess.run([optimizer, loss, loss1, loss2, reg_1, reg_2],
-                feed_dict={input1: data_1_batch, input2: data_2_batch, c1: c1_batch, c2: c2_batch, target: target_batch})
-
-            print("Itera {0} : loss = {1}, loss1 = {2}, loss2 = {3}".format(iteration, loss_val, loss1_val, loss2_val))
-            f.write("Itera {0} : loss = {1}, loss1 = {2}, loss2 = {3}\r\n".format(iteration, loss_val, loss1_val, loss2_val))
+        train(base_model, gen_model, reg_model, idreg_model, device, train_loader, optimizer, criterion1, criterion2, iter)
+        if iter > 0 and iter % 100 == 0:
+            testacc = test(test_loader, base_model, gen_model, reg_model, device)
+            print("testacc:" + str(testacc))
+            f.write("testacc:" + str(testacc))
             f.flush()
-
-            if(iteration != 0 and iteration % 100 == 0):
-                acc_pool, start_time = [], time.time()
-                for i in range(50):
-                    test_1_batch, test_2_batch, label_batch = testset.get_batch(batch_size=GLOBAL_BATCH_SIZE)
-
-                #     test_1_cur, test_2_cur, label_cur = sess.run([data_1_batch, data_2_batch, label_batch])
-                    # out1_a, out1_b, k1, k2 = sess.run(compute_contrastive_features(test_1_batch, test_2_batch, base_model, gen_model))
-                    SAB_val, reg1_val, reg2_val = sess.run([SAB, reg_1, reg_2], feed_dict={input1: test_1_batch, input2: test_2_batch})
-                    # print("SAB", SAB_val)
-                    # print("1v", reg1_val)
-                    # print("2v", reg2_val)
-                    dists = np.array(SAB_val).reshape((-1, 1))
-                    # print(dists)
-                    labels = np.array(label_batch).reshape((-1, 1))
-                    # print(labels)
-                    accuracy = evaluate(1.0 - dists, labels)
-
-                    acc_pool.append(np.mean(accuracy))
-                print("Acc(%.2f)"%(time.time()-start_time), np.mean(acc_pool), acc_pool)
-                f.write("Acc" + str(np.mean(acc_pool)) + str(acc_pool) + str("\r\n"))
-                f.flush()
-        f.close()
 
 
 if __name__ == '__main__':

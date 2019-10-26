@@ -1,49 +1,40 @@
-import tensorflow as tf
-from linear import Linear
-
-def extract_patches(x, patch_size):
-    cur = tf.extract_image_patches(images=x, ksizes=[1, patch_size, patch_size, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding="VALID")
-
-    dim, channel = int(cur.shape[1]) * int(cur.shape[2]), int(x.shape[3])
-    cur = tf.reshape(cur, (-1, dim, channel*patch_size*patch_size))
-    return cur
+import torch
+import torch.nn as nn
 
 
-class GenModel():
+def extractpatches( x, patch_size):
+    patches = x.unfold( 2, patch_size ,  1).unfold(3,patch_size,1)
+    bs,c,pi,pj, _, _ = patches.size()
+
+    l = [patches[:,:,int(i/pi),i%pi,:,:] for i in range(pi * pi)]
+    f = [l[i].contiguous().view(-1,c*patch_size*patch_size) for i in range(pi * pi)]
+
+    stack_tensor = torch.stack(f)
+    stack_tensor = stack_tensor.permute(1,0,2)
+    return stack_tensor
+
+
+class GenModel(nn.Module):
     def __init__(self, feature_size):
+        super(GenModel, self).__init__()
         self.f_size = feature_size
+        self.g1 = nn.Linear(self.f_size*3*3, self.f_size*3*3)
+        self.g2 = nn.Linear(self.f_size*2*2, self.f_size*3*3)
+        self.g3 = nn.Linear(self.f_size*1*1, self.f_size*3*3)
+        self.conv3x3 = nn.Conv2d(self.f_size, self.f_size, 3)
+        self.relu = nn.ReLU()
 
-        self.g1 = Linear("g1", self.f_size*3*3, self.f_size*3*3)
-        self.g2 = Linear("g2", self.f_size*2*2, self.f_size*3*3)
-        self.g3 = Linear("g3", self.f_size*1*1, self.f_size*3*3)
-
-    def forward(self, x, scope):
+    def forward(self, x):
         S0 = x
+        p1 = extractpatches(S0, 3)
+        S1 = self.relu(self.conv3x3(S0))
+        p2 = extractpatches(S1, 2)
+        S2 = self.relu(self.conv3x3(S1))
+        p3 = extractpatches(S2, 1)
 
-        conv1 = conv_op(input_op=S0, name="S0"+scope, kh=3, kw=3, n_out=self.f_size, dh=1, dw=1)
-        S1 = tf.nn.relu(conv1)
+        kk1 = self.relu(self.g1(p1))
+        kk2 = self.relu(self.g2(p2))
+        kk3 = self.relu(self.g3(p3))
 
-        conv2 = conv_op(input_op=S1, name="S1"+scope, kh=3, kw=3, n_out=self.f_size, dh=1, dw=1)
-        S2 = tf.nn.relu(conv2)
-
-        p1 = extract_patches(S0, 3)
-        # print("p1", p1) # bs*9*4608
-
-        p2 = extract_patches(S1, 2)
-        # print("p2", p2) # bs*4*2048
-
-        p3 = extract_patches(S2, 1)
-        # print("p3", p3) # bs*1*512
-
-        kk1 = tf.nn.relu(self.g1.forward(p1))
-        # print("kk1", kk1) # bs*9*4608
-
-        kk2 = tf.nn.relu(self.g2.forward(p2))
-        # print("kk2", kk2) # bs*4*4608
-
-        kk3 = tf.nn.relu(self.g3.forward(p3))
-        # print("kk3", kk3) # bs*1*4608
-
-        kernels = tf.concat((kk1, kk2, kk3), 1)
-
-        return kernels
+        kernel = torch.cat((kk1, kk2, kk3), dim=1)
+        return kernel
