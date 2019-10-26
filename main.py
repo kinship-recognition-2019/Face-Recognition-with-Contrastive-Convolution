@@ -197,7 +197,6 @@ def main():
     criterion1 = nn.BCELoss().to(device)
 
     for iter in range(args.start_epoch + 1, args.iters + 1):
-        print(iter)
         adjust_learning_rate(optimizer, iter)
 
         train(base_model, gen_model, reg_model, idreg_model, device, train_loader, optimizer, criterion1, criterion2, iter)
