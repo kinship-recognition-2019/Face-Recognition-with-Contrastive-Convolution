@@ -10,7 +10,7 @@ class Identity_Regressor(nn.Module):
 
     def forward(self, x):
         bs, m, n = x.size()
-        x = x.view(-1,n*m)
+        x = x.view(-1, n*m)
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return x

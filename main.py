@@ -181,9 +181,6 @@ def main():
         transforms.Resize(128),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor()])
-    train_dataset = CasiaFaceDataset(img_path=args.casia_img_path, list_path=args.casia_list_path,
-                                     noofpairs=args.batch_size, transform=train_transform)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
 
     base_model = Network4Layers().to(device)
     gen_model = GenModel(512).to(device)
@@ -198,6 +195,9 @@ def main():
 
     for iter in range(args.start_epoch + 1, args.iters + 1):
         adjust_learning_rate(optimizer, iter)
+        train_dataset = CasiaFaceDataset(img_path=args.casia_img_path, list_path=args.casia_list_path,
+                                         noofpairs=args.batch_size, transform=train_transform)
+        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
 
         train(base_model, gen_model, reg_model, idreg_model, device, train_loader, optimizer, criterion1, criterion2, iter)
         if iter > 0 and iter % 100 == 0:

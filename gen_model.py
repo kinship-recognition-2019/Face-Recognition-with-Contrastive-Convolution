@@ -2,12 +2,12 @@ import torch
 import torch.nn as nn
 
 
-def extractpatches( x, patch_size):
-    patches = x.unfold( 2, patch_size ,  1).unfold(3,patch_size,1)
-    bs,c,pi,pj, _, _ = patches.size()
+def extractpatches(x, patch_size):
+    patches = x.unfold(2, patch_size, 1).unfold(3, patch_size, 1)
+    bs, c, pi, pj,  _, _ = patches.size()
 
-    l = [patches[:,:,int(i/pi),i%pi,:,:] for i in range(pi * pi)]
-    f = [l[i].contiguous().view(-1,c*patch_size*patch_size) for i in range(pi * pi)]
+    l = [patches[:, :, int(i/pi), i % pi, :, :] for i in range(pi * pi)]
+    f = [l[i].contiguous().view(-1, c*patch_size*patch_size) for i in range(pi * pi)]
 
     stack_tensor = torch.stack(f)
     stack_tensor = stack_tensor.permute(1,0,2)
