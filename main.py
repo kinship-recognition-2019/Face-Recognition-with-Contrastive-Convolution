@@ -147,15 +147,15 @@ def main():
     parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                         help='manual epoch number (useful on restarts)')
     parser.add_argument('--casia_img_path', type=str,
-                        default='D:/Silvia/大学/大三上/其他/大创/Face-Recognition-with-Contrastive-Convolution/dataset/CASIA-WebFace/',
+                        default='./dataset/CASIA-WebFace/',
                         help='path to casia')
     parser.add_argument('--casia_list_path', type=str,
-                        default='casialist.txt',
+                        default='./dataset/casialist.txt',
                         help='path to casialist')
     parser.add_argument('--lfw-img-path', type=str,
-                        default='D:/Silvia/大学/大三上/其他/大创/Face-Recognition-with-Contrastive-Convolution/dataset/lfw',
+                        default='./dataset/lfw',
                         help='path to dataset')
-    parser.add_argument('--lfw_pairs_path', type=str, default='lfw_pairs.txt',
+    parser.add_argument('--lfw_pairs_path', type=str, default='./dataset/pairs.txt',
                         help='path to pairs file')
     parser.add_argument('--test_batch_size', type=int, default=128, metavar='BST',
                         help='input batch size for testing (default: 1000)')
