@@ -160,7 +160,7 @@ def main():
     parser.add_argument('--lfw-pairs-path', type=str, default='./dataset/pairs.txt',
                         help='path to pairs file')
     parser.add_argument('--fiw_img_path', type=str,
-                        default='D:/Silvia/大学/大三上/其他/大创/数据集/FIW/Face Data/FIDs_NEW/')
+                        default='./dataset/FIDs_NEW/')
     parser.add_argument('--fiw_train_pairs', type=str,
                         default='./dataset/train_list.csv')
     parser.add_argument('--fiw_test_pairs', type=str,
