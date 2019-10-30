@@ -1,16 +1,21 @@
-import torchvision.datasets as datasets
+from PIL import Image
+from torch.utils.data import Dataset
 import os
+import numpy as np
 
 
-class FIWTrainDataset(datasets.ImageFolder):
-    def __init__(self, img_path, pairs_path, transform):
-        super(FIWTrainDataset, self).__init__(img_path)
+class FIWTrainDataset(Dataset):
+    def __init__(self, img_path, pairs_path, transform, noofpairs=4):
+        super().__init__()
         self.img_path = img_path
         self.pairs_path = pairs_path
         self.transform = transform
-        self.trainset = self.get_train_pairs()
+        self.noofpairs = noofpairs
+        self.image_list = self.get_pairs()
+        self.noofcategories = len(self.image_list) - 1
+        self.trainset = self.create_pairs()
 
-    def get_train_pairs(self):
+    def get_pairs(self):
         pair_list = []
         with open(self.pairs_path, 'r') as f:
             for line in f.readlines():
@@ -23,10 +28,38 @@ class FIWTrainDataset(datasets.ImageFolder):
                 pair_list.append((path1, path2, id1, id2, label))
         return pair_list
 
-    def __getitem__(self, index):
-        (path_1, path_2, id1, id2, issame) = self.trainset[index]
-        img1, img2 = self.transform(self.loader(path_1)), self.transform(self.loader(path_2))
-        return img1, img2, id1, id2, issame
+    def create_pairs(self):
+        pairsList = []
+        for n in range(self.noofpairs):
+            posCatList = np.arange(0, self.noofcategories)
+            i = np.random.choice(posCatList)
+            negativeCategoriesList = np.delete(np.arange(0, self.noofcategories), i)
+            j = np.random.choice(negativeCategoriesList)
+
+            imageA, c1, imageB, c2, target= self.image_list[i]
+            pairsList.append([imageA, imageB, c1, c2, target])
+
+            imageA, c1, imageB, c2, target = self.image_list[j]
+            pairsList.append([imageA, imageB, c1, c2, target])
+
+        return pairsList
+
+    def __getitem__(self, i):
+        path_img1 = self.trainset[i][0]
+        path_img2 = self.trainset[i][2]
+        id1 = self.trainset[i][1]
+        id2 = self.trainset[i][3]
+        label = self.trainset[i][4]
+
+        if os.path.exists(path_img1) and os.path.exists(path_img2):
+            img1 = Image.open(path_img1).convert('L')
+            img2 = Image.open(path_img2).convert('L')
+
+            if self.transform:
+                img1 = self.transform(img1)
+                img2 = self.transform(img2)
+
+            return img1, img2, int(id1), int(id2), int(label)
 
     def __len__(self):
         return len(self.trainset)
