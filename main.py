@@ -167,7 +167,7 @@ def main():
                         default='./dataset/test_list.csv')
     parser.add_argument('--test_batch_size', type=int, default=128, metavar='BST',
                         help='input batch size for testing (default: 1000)')
-    parser.add_argument('--num_classes', default=1001, type=int,
+    parser.add_argument('--num_classes', default=1000, type=int,
                         metavar='N', help='number of classes (default: 10574)')
 
     args = parser.parse_args()

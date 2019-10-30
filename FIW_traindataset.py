@@ -47,9 +47,9 @@ class FIWTrainDataset(Dataset):
     def __getitem__(self, i):
         path_img1 = self.trainset[i][0]
         path_img2 = self.trainset[i][2]
-        id1 = self.trainset[i][1]
-        id2 = self.trainset[i][3]
-        label = self.trainset[i][4]
+        id1 = int(self.trainset[i][1]) - 1
+        id2 = int(self.trainset[i][3]) - 1
+        label = int(self.trainset[i][4])
 
         if os.path.exists(path_img1) and os.path.exists(path_img2):
             img1 = Image.open(path_img1).convert('L')
@@ -59,7 +59,7 @@ class FIWTrainDataset(Dataset):
                 img1 = self.transform(img1)
                 img2 = self.transform(img2)
 
-            return img1, img2, int(id1), int(id2), int(label)
+            return img1, img2, id1, id2, label
 
     def __len__(self):
         return len(self.trainset)
