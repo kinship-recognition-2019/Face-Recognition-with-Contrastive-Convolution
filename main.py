@@ -205,7 +205,7 @@ def main():
     for iter in range(args.start_epoch + 1, args.iters + 1):
         adjust_learning_rate(optimizer, iter)
         train_dataset = FIWTrainDataset(img_path=args.fiw_img_path, pairs_path=args.fiw_train_pairs,transform=train_transform)
-        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
+        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size*4, shuffle=True, **kwargs)
 
         train(base_model, gen_model, reg_model, idreg_model, device, train_loader, optimizer, criterion1, criterion2, iter)
         if iter > 0 and iter % 100 == 0:
