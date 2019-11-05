@@ -31,10 +31,13 @@ class FIWTrainDataset(Dataset):
     def create_pairs(self):
         pairsList = []
         for n in range(self.noofpairs):
-            posCatList = np.arange(0, self.noofcategories)
-            i = np.random.choice(posCatList)
-            negativeCategoriesList = np.delete(np.arange(0, self.noofcategories), i)
-            j = np.random.choice(negativeCategoriesList)
+            CatList = np.arange(0, self.noofcategories)
+            i = np.random.choice(CatList)
+            while self.image_list[i][4] != 1:
+                i = np.random.choice(CatList)
+            j = np.random.choice(CatList)
+            while self.image_list[j][4] != 0:
+                j = np.random.choice(CatList)
 
             imageA, c1, imageB, c2, target= self.image_list[i]
             pairsList.append([imageA, imageB, c1, c2, target])
