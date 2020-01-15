@@ -19,6 +19,11 @@ import numpy as np
 import argparse
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+f = open('result.txt', 'w')
+
+>>>>>>> parent of c1740606... optimizer
 =======
 f = open('result.txt', 'w')
 
@@ -102,11 +107,17 @@ def train(base_model, gen_model, reg_model, idreg_model, device, train_loader, o
 
         loss.backward()
 <<<<<<< HEAD
+<<<<<<< HEAD
         optimizer.step()
         f = open('result.txt', 'a')
         print('Iteration'+str(iter), "loss=", loss.item(), "loss1=", loss1.item(), "loss2=", loss2.item())
         f.write('Iteration'+str(iter)+" loss="+str(loss.item())+" loss1="+str(loss1.item())+" loss2="+str(loss2.item()) + "\n")
         f.close()
+=======
+        print('Iteration'+str(iter), 'Batch'+str(batch_idx), "loss=", loss.item(), "loss1=", loss1.item(), "loss2=", loss2.item())
+        f.write('Iteration'+str(iter)+' Batch'+str(batch_idx)+" loss="+str(loss.item())+" loss1="+str(loss1.item())+" loss2="+str(loss2.item()))
+        f.flush()
+>>>>>>> parent of c1740606... optimizer
 =======
         print('Iteration'+str(iter), 'Batch'+str(batch_idx), "loss=", loss.item(), "loss1=", loss1.item(), "loss2=", loss2.item())
         f.write('Iteration'+str(iter)+' Batch'+str(batch_idx)+" loss="+str(loss.item())+" loss1="+str(loss1.item())+" loss2="+str(loss2.item()))
@@ -222,10 +233,16 @@ def main():
         if iter > 0 and iter % 100 == 0:
             testacc = test(test_loader, base_model, gen_model, reg_model, device)
 <<<<<<< HEAD
+<<<<<<< HEAD
             f = open('result.txt', 'a')
             print("testacc:" + str(testacc))
             f.write("testacc:" + str(testacc)+"\n")
             f.close()
+=======
+            print("testacc:" + str(testacc))
+            f.write("testacc:" + str(testacc))
+            f.flush()
+>>>>>>> parent of c1740606... optimizer
 =======
             print("testacc:" + str(testacc))
             f.write("testacc:" + str(testacc))
