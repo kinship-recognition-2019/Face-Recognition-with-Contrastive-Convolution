@@ -18,6 +18,11 @@ from eval_metrics import evaluate
 import numpy as np
 import argparse
 
+<<<<<<< HEAD
+=======
+f = open('result.txt', 'w')
+
+>>>>>>> parent of c1740606... optimizer
 
 def compute_contrastive_features(data_1, data_2, basemodel, genmodel, device):
     data_1, data_2 = (data_1).to(device), (data_2).to(device)
@@ -96,11 +101,17 @@ def train(base_model, gen_model, reg_model, idreg_model, device, train_loader, o
         loss = loss2 + loss1
 
         loss.backward()
+<<<<<<< HEAD
         optimizer.step()
         f = open('result.txt', 'a')
         print('Iteration'+str(iter), "loss=", loss.item(), "loss1=", loss1.item(), "loss2=", loss2.item())
         f.write('Iteration'+str(iter)+" loss="+str(loss.item())+" loss1="+str(loss1.item())+" loss2="+str(loss2.item()) + "\n")
         f.close()
+=======
+        print('Iteration'+str(iter), 'Batch'+str(batch_idx), "loss=", loss.item(), "loss1=", loss1.item(), "loss2=", loss2.item())
+        f.write('Iteration'+str(iter)+' Batch'+str(batch_idx)+" loss="+str(loss.item())+" loss1="+str(loss1.item())+" loss2="+str(loss2.item()))
+        f.flush()
+>>>>>>> parent of c1740606... optimizer
 
 
 def test(test_loader, basemodel, genmodel, reg_model, device):
@@ -210,10 +221,16 @@ def main():
         train(base_model, gen_model, reg_model, idreg_model, device, train_loader, optimizer, criterion1, criterion2, iter)
         if iter > 0 and iter % 100 == 0:
             testacc = test(test_loader, base_model, gen_model, reg_model, device)
+<<<<<<< HEAD
             f = open('result.txt', 'a')
             print("testacc:" + str(testacc))
             f.write("testacc:" + str(testacc)+"\n")
             f.close()
+=======
+            print("testacc:" + str(testacc))
+            f.write("testacc:" + str(testacc))
+            f.flush()
+>>>>>>> parent of c1740606... optimizer
 
 
 if __name__ == '__main__':
