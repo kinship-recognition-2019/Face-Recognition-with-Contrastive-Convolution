@@ -2,15 +2,15 @@ import torch
 import torch.nn as nn
 
 
-def extractpatches(x, patch_size):
+def extractpatched(x, patch_size):
     patches = x.unfold(2, patch_size, 1).unfold(3, patch_size, 1)
-    bs, c, pi, pj,  _, _ = patches.size()
+    bs, c, pi, pj, _, _ = patches.size()
 
-    l = [patches[:, :, int(i/pi), i % pi, :, :] for i in range(pi * pi)]
-    f = [l[i].contiguous().view(-1, c*patch_size*patch_size) for i in range(pi * pi)]
+    l = [patches[:, :, int(i / pi), i % pi, :, :] for i in range(pi * pi)]
+    f = [l[i].contiguous().view(-1, c * patch_size * patch_size) for i in range(pi * pi)]
 
     stack_tensor = torch.stack(f)
-    stack_tensor = stack_tensor.permute(1,0,2)
+    stack_tensor = stack_tensor.permute(1, 0, 2)
     return stack_tensor
 
 
@@ -26,11 +26,11 @@ class GenModel(nn.Module):
 
     def forward(self, x):
         S0 = x
-        p1 = extractpatches(S0, 3)
+        p1 = extractpatched(S0, 3)
         S1 = self.relu(self.conv3x3(S0))
-        p2 = extractpatches(S1, 2)
+        p2 = extractpatched(S1, 2)
         S2 = self.relu(self.conv3x3(S1))
-        p3 = extractpatches(S2, 1)
+        p3 = extractpatched(S2, 1)
 
         kk1 = self.relu(self.g1(p1))
         kk2 = self.relu(self.g2(p2))
