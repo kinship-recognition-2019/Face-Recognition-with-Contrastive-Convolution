@@ -6,6 +6,8 @@ from torchvision import transforms
 
 from CASIA_dataset import CasiaFaceDataset
 from LFW_dataset import LFWDataset
+from FIW_traindataset import FIWTrainDataset
+from FIW_testdataset import FIWTestDataset
 
 from base_model import Network4Layers
 from eval_metrics import evaluate
@@ -129,6 +131,9 @@ def main():
     parser.add_argument('--lr', type=float, default=0.1, metavar='LR', help='learning rate')
     parser.add_argument('--momentum', type=float, default=0.9, metavar='M', help='SGD momentum')
     parser.add_argument('--no-cuda', action='store_true', default=False, help='disables CUDA training')
+    parser.add_argument('--fiw-img-path', type=str, default='./dataset/FIDs_NEW', help='path to fiw')
+    parser.add_argument('--fiw-train-list-path', type=str, default='./dataset/train_list.csv', help='path to fiw train list')
+    parser.add_argument('--fiw-test-list-path', type=str, default='./dataset/test_list.csv', help='path to fiw test list')
     parser.add_argument('--casia-img-path', type=str, default='./dataset/CASIA-WebFace', help='path to casia')
     parser.add_argument('--casia-list-path', type=str, default='./dataset/casialist.txt', help='path to casia list')
     parser.add_argument('--lfw-img-path', type=str, default='./dataset/lfw', help='path to lfw')
@@ -148,7 +153,8 @@ def main():
             transforms.Grayscale(num_output_channels=1),
             transforms.Resize(128),
             transforms.ToTensor()])
-    test_dataset = LFWDataset(img_path=args.lfw_img_path, pairs_path=args.lfw_list_path, transform=test_transform)
+    test_dataset = FIWTestDataset(img_path=args.fiw_img_path, pairs_path=args.fiw_test_list_path, transform=test_transform)
+    # test_dataset = LFWDataset(img_path=args.lfw_img_path, pairs_path=args.lfw_list_path, transform=test_transform)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
 
     train_transform = transforms.Compose([
@@ -169,8 +175,10 @@ def main():
 
     for iter in range(args.start_epoch + 1, args.iters + 1):
         adjust_learning_rate(optimizer, iter)
-        train_dataset = CasiaFaceDataset(img_path=args.casia_img_path, list_path=args.casia_list_path,
-                                         noofpairs=args.batch_size, transform=train_transform)
+        train_dataset = FIWTrainDataset(img_path=args.fiw_img_path, list_path=args.fiw_train_list_path,
+                                        noofpairs=args.batch_size, transform=train_transform)
+        # train_dataset = CasiaFaceDataset(img_path=args.casia_img_path, list_path=args.casia_list_path,
+        #                                  noofpairs=args.batch_size, transform=train_transform)
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
         train(base_model, gen_model, reg_model, idreg_model, device, train_loader, optimizer, criterion1, criterion2, iter)
         if iter > 0 and iter % 100 == 0:

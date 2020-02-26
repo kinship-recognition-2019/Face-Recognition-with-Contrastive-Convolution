@@ -5,33 +5,32 @@ import numpy as np
 
 
 class FIWTrainDataset(Dataset):
-    def __init__(self, img_path, pairs_path, transform, noofpairs=4):
+    def __init__(self, img_path, list_path, noofpairs=4, transform=None):
         super().__init__()
-        self.img_path = img_path
-        self.pairs_path = pairs_path
         self.transform = transform
-        self.noofpairs = noofpairs
-        self.image_list = self.get_pairs()
-        self.noofcategories = len(self.image_list) - 1
-        self.trainset = self.create_pairs()
+        self.img_path = img_path
+        self.list_path = list_path
+        self.no_of_pairs = noofpairs
+        self.image_list = self.get_image_list()
+        self.train_list = self.create_pairs()
 
-    def get_pairs(self):
+    def get_image_list(self):
         pair_list = []
-        with open(self.pairs_path, 'r') as f:
+        with open(self.list_path, 'r') as f:
             for line in f.readlines():
                 label, p1, p2 = line.strip().split(',')
                 path1 = os.path.join(self.img_path, p1)
                 path2 = os.path.join(self.img_path, p2)
-                id1 = int(p1[1:5])
-                id2 = int(p2[1:5])
+                id1 = int(p1[1:5]) - 1
+                id2 = int(p2[1:5]) - 1
                 label = int(label)
                 pair_list.append((path1, path2, id1, id2, label))
         return pair_list
 
     def create_pairs(self):
         pairsList = []
-        for n in range(self.noofpairs):
-            CatList = np.arange(0, self.noofcategories)
+        for n in range(self.no_of_pairs):
+            CatList = np.arange(0, len(self.image_list))
             i = np.random.choice(CatList)
             while self.image_list[i][4] != 1:
                 i = np.random.choice(CatList)
@@ -39,20 +38,20 @@ class FIWTrainDataset(Dataset):
             while self.image_list[j][4] != 0:
                 j = np.random.choice(CatList)
 
-            imageA, c1, imageB, c2, target= self.image_list[i]
+            imageA, imageB, c1, c2, target= self.image_list[i]
             pairsList.append([imageA, imageB, c1, c2, target])
 
-            imageA, c1, imageB, c2, target = self.image_list[j]
+            imageA, imageB, c1, c2, target = self.image_list[j]
             pairsList.append([imageA, imageB, c1, c2, target])
 
         return pairsList
 
     def __getitem__(self, i):
-        path_img1 = self.trainset[i][0]
-        path_img2 = self.trainset[i][2]
-        id1 = int(self.trainset[i][1]) - 1
-        id2 = int(self.trainset[i][3]) - 1
-        label = int(self.trainset[i][4])
+        path_img1 = self.train_list[i][0]
+        path_img2 = self.train_list[i][1]
+        id1 = self.train_list[i][2]
+        id2 = self.train_list[i][3]
+        label = self.train_list[i][4]
 
         if os.path.exists(path_img1) and os.path.exists(path_img2):
             img1 = Image.open(path_img1).convert('L')
@@ -65,4 +64,15 @@ class FIWTrainDataset(Dataset):
             return img1, img2, id1, id2, label
 
     def __len__(self):
-        return len(self.trainset)
+        return len(self.train_list)
+
+
+if __name__ == '__main__':
+    img_path = './dataset/FIDs_NEW'
+    list_path = './dataset/train_list.csv'
+
+    ff = FIWTrainDataset(img_path, list_path, 4)
+    f = open('out.txt', 'w')
+    list = ff.create_pairs()
+    f.write(str(list) + '\n')
+    f.write(str(list[0])+'\n')
