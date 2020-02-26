@@ -73,7 +73,7 @@ def train(base_model, gen_model, reg_model, idreg_model, device, train_loader, o
 
     for batch_idx, (data_1, data_2, c1, c2, target) in enumerate(train_loader):
         data_1, data_2 = (data_1).to(device), (data_2).to(device)
-        c1, c2 = torch.from_numpy(np.asarray(c1)).to(device), torch.from_numpy(np.asarray(c2))
+        c1, c2 = torch.from_numpy(np.asarray(c1)).to(device), torch.from_numpy(np.asarray(c2)).to(device)
         target = torch.from_numpy(np.asarray(target)).to(device)
 
         target = target.float().unsqueeze(1)
@@ -139,7 +139,7 @@ def main():
     parser.add_argument('--lfw-img-path', type=str, default='./dataset/lfw', help='path to lfw')
     parser.add_argument('--lfw-list-path', type=str, default='./dataset/pairs.txt', help='path to lfw list')
     parser.add_argument('--test-batch-size', type=int, default=128, metavar='BST', help='input batch size for testing')
-    parser.add_argument('--num-classes', default=10575, type=int, metavar='N', help='number of classes')
+    parser.add_argument('--num-classes', default=1000, type=int, metavar='N', help='number of classes')
     parser.add_argument('--start-epoch', default=0, type=int, metavar='N', help='manual epoch number')
     parser.add_argument('--iters', type=int, default=200000, metavar='N', help='number of iterations to train')
 
@@ -158,6 +158,7 @@ def main():
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
 
     train_transform = transforms.Compose([
+        transforms.Grayscale(num_output_channels=1),
         transforms.Resize(128),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor()])
