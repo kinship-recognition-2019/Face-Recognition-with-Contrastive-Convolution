@@ -73,7 +73,7 @@ def train(base_model, gen_model, reg_model, idreg_model, device, train_loader, o
 
     for batch_idx, (data_1, data_2, c1, c2, target) in enumerate(train_loader):
         data_1, data_2 = (data_1).to(device), (data_2).to(device)
-        c1, c2 = torch.from_numpy(np.asarray(c1)).to(device), torch.from_numpy(np.asarray(c2))
+        c1, c2 = torch.from_numpy(np.asarray(c1)).to(device), torch.from_numpy(np.asarray(c2)).to(device)
         target = torch.from_numpy(np.asarray(target)).to(device)
 
         target = target.float().unsqueeze(1)
