@@ -1,10 +1,9 @@
+import torchvision.datasets as datasets
 import os
-
-from torchvision import datasets
 
 
 class LFWDataset(datasets.ImageFolder):
-    def __init__(self, img_path, pairs_path, transform=None):
+    def __init__(self, img_path, pairs_path, transform):
         super(LFWDataset, self).__init__(img_path, transform)
         self.img_path = img_path
         self.pairs_path = pairs_path
@@ -26,7 +25,7 @@ class LFWDataset(datasets.ImageFolder):
                 issame = True
             elif len(pair) == 4:
                 path0 = os.path.join(self.img_path, pair[0], pair[0] + '_' + '%04d' % int(pair[1])+'.'+file_ext)
-                path1 = os.path.join(self.img_path, pair[2], pair[2] + '_' + '%04d' % int(pair[1])+'.'+file_ext)
+                path1 = os.path.join(self.img_path, pair[2], pair[2] + '_' + '%04d' % int(pair[3])+'.'+file_ext)
                 issame = False
             if os.path.exists(path0) and os.path.exists(path1):
                 pair_list.append((path0, path1, issame))

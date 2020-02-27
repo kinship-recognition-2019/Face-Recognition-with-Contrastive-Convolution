@@ -1,5 +1,4 @@
 import os
-
 import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset
@@ -13,7 +12,7 @@ class CasiaFaceDataset(Dataset):
         self.list_path = list_path
         self.no_of_pairs = noofpairs
         self.image_list = self.get_image_list()  # (id, 'subject', ['subject/xxx.jpg', 'subject/yyy.jpg', ...])
-        self.no_of_categories = len(self.image_list)
+        self.no_of_categories = len(self.image_list) - 1 # ???
         self.train_list = self.create_pairs() # [noofpairs * ['pos/x.jpg', id1, 'pos/y.jpg', id1, '1'], ['pos/x.jpg', id1, 'neg/y.jpg', id2, '0']]
 
     def get_image_list(self):
@@ -30,10 +29,10 @@ class CasiaFaceDataset(Dataset):
         imagelist = []
         for i, (key, value) in enumerate(subjectdict.items()):
             imagelist.append((i, key, value))
-
         return imagelist
 
-    def get_random_two_images(self, tupleA, tupleB):
+    @staticmethod
+    def get_random_two_images(tupleA, tupleB):
         classA = tupleA[0]
         classB = tupleB[0]
         listA = tupleA[2]
@@ -42,7 +41,6 @@ class CasiaFaceDataset(Dataset):
         imageB = np.random.choice(listB)
         while imageA == imageB:
             imageB = np.random.choice(listB)
-
         # return imageA, classA, imageB, classB
         return '/'.join(imageA.split("/")[-2:]), classA, '/'.join(imageB.split("/")[-2:]), classB
 
@@ -52,11 +50,11 @@ class CasiaFaceDataset(Dataset):
             posCatList = np.arange(0, self.no_of_categories)
             i = np.random.choice(posCatList)
             negCatList = np.delete(np.arange(0, self.no_of_categories), i)
+            j = np.random.choice(negCatList)
 
             imageA, c1, imageB, c2 = self.get_random_two_images(self.image_list[i], self.image_list[i])
             pairsList.append([imageA, c1, imageB, c2, "1"])
 
-            j = np.random.choice(negCatList)
             imageA, c1, imageB, c2 = self.get_random_two_images(self.image_list[i], self.image_list[j])
             pairsList.append([imageA, c1, imageB, c2, "0"])
 

@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class Network4Layers(nn.Module):
     def __init__(self):
         super(Network4Layers, self).__init__()

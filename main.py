@@ -10,10 +10,10 @@ from FIW_traindataset import FIWTrainDataset
 from FIW_testdataset import FIWTestDataset
 
 from base_model import Network4Layers
-from eval_metrics import evaluate
 from gen_model import GenModel
 from reg_model import Regressor
 from idreg_model import Identity_Regressor
+from eval_metrics import evaluate
 
 import numpy as np
 import argparse
@@ -94,9 +94,9 @@ def train(base_model, gen_model, reg_model, idreg_model, device, train_loader, o
 
         loss.backward()
         optimizer.step()
-        f = open('result.txt', 'w')
+        f = open('result.txt', 'a')
         print('Iteration' + str(iter), 'Batch' + str(batch_idx), "loss=", loss.item(), "loss1=", loss1.item(), "loss2=", loss2.item())
-        f.write('Iteration' + str(iter) + ' Batch' + str(batch_idx) + " loss=" + str(loss.item()) + " loss1=" + str(loss1.item()) + " loss2=" + str(loss2.item()))
+        f.write('Iteration' + str(iter) + ' Batch' + str(batch_idx) + " loss=" + str(loss.item()) + " loss1=" + str(loss1.item()) + " loss2=" + str(loss2.item()) + '\n')
         f.close()
 
 
@@ -153,8 +153,8 @@ def main():
             transforms.Grayscale(num_output_channels=1),
             transforms.Resize(128),
             transforms.ToTensor()])
-    test_dataset = FIWTestDataset(img_path=args.fiw_img_path, pairs_path=args.fiw_test_list_path, transform=test_transform)
-    # test_dataset = LFWDataset(img_path=args.lfw_img_path, pairs_path=args.lfw_list_path, transform=test_transform)
+    # test_dataset = FIWTestDataset(img_path=args.fiw_img_path, pairs_path=args.fiw_test_list_path, transform=test_transform)
+    test_dataset = LFWDataset(img_path=args.lfw_img_path, pairs_path=args.lfw_list_path, transform=test_transform)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
 
     train_transform = transforms.Compose([
@@ -175,17 +175,17 @@ def main():
 
     for iter in range(args.start_epoch + 1, args.iters + 1):
         adjust_learning_rate(optimizer, iter)
-        train_dataset = FIWTrainDataset(img_path=args.fiw_img_path, list_path=args.fiw_train_list_path,
-                                        noofpairs=args.batch_size, transform=train_transform)
-        # train_dataset = CasiaFaceDataset(img_path=args.casia_img_path, list_path=args.casia_list_path,
-        #                                  noofpairs=args.batch_size, transform=train_transform)
+        # train_dataset = FIWTrainDataset(img_path=args.fiw_img_path, list_path=args.fiw_train_list_path,
+        #                                 noofpairs=args.batch_size, transform=train_transform)
+        train_dataset = CasiaFaceDataset(img_path=args.casia_img_path, list_path=args.casia_list_path,
+                                         noofpairs=args.batch_size, transform=train_transform)
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
         train(base_model, gen_model, reg_model, idreg_model, device, train_loader, optimizer, criterion1, criterion2, iter)
         if iter > 0 and iter % 100 == 0:
             testacc = test(test_loader, base_model, gen_model, reg_model, device)
-            f = open('result.txt', 'w')
+            f = open('result.txt', 'a')
             print("testacc:" + str(testacc))
-            f.write("testacc:" + str(testacc))
+            f.write("testacc:" + str(testacc) + '\n')
             f.close()
 
 
