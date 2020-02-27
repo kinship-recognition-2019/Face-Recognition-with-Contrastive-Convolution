@@ -43,8 +43,8 @@ class CasiaFaceDataset(Dataset):
         while imageA == imageB:
             imageB = np.random.choice(listB)
 
-        return imageA, classA, imageB, classB
-        # return '/'.join(imageA.split("/")[-2:]), classA, '/'.join(imageB.split("/")[-2:]), classB
+        # return imageA, classA, imageB, classB
+        return '/'.join(imageA.split("/")[-2:]), classA, '/'.join(imageB.split("/")[-2:]), classB
 
     def create_pairs(self):
         pairsList = []
@@ -52,11 +52,11 @@ class CasiaFaceDataset(Dataset):
             posCatList = np.arange(0, self.no_of_categories)
             i = np.random.choice(posCatList)
             negCatList = np.delete(np.arange(0, self.no_of_categories), i)
-            j = np.random.choice(negCatList)
 
             imageA, c1, imageB, c2 = self.get_random_two_images(self.image_list[i], self.image_list[i])
             pairsList.append([imageA, c1, imageB, c2, "1"])
 
+            j = np.random.choice(negCatList)
             imageA, c1, imageB, c2 = self.get_random_two_images(self.image_list[i], self.image_list[j])
             pairsList.append([imageA, c1, imageB, c2, "0"])
 
