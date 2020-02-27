@@ -95,8 +95,13 @@ def train(base_model, gen_model, reg_model, idreg_model, device, train_loader, o
         loss.backward()
         optimizer.step()
         f = open('result.txt', 'w')
+<<<<<<< HEAD
         print('Iteration' + str(iter), 'Batch' + str(batch_idx), "loss=", loss.item(), "loss1=", loss1.item(), "loss2=", loss2.item())
         f.write('Iteration' + str(iter) + ' Batch' + str(batch_idx) + " loss=" + str(loss.item()) + " loss1=" + str(loss1.item()) + " loss2=" + str(loss2.item()))
+=======
+        print('Iteration'+str(iter), 'Batch'+str(batch_idx), "loss=", loss.item(), "loss1=", loss1.item(), "loss2=", loss2.item())
+        f.write('Iteration'+str(iter)+' Batch'+str(batch_idx)+" loss="+str(loss.item())+" loss1="+str(loss1.item())+" loss2="+str(loss2.item()))
+>>>>>>> parent of c0fe3542... edit f,write
         f.close()
 
 
