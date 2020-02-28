@@ -54,7 +54,7 @@ class GenModel(nn.Module):
    def forward(self, x):
        # n is feature from basemodel of size bsx 192x5x5
        #kernels = torch.tensor([0],dtype=torch.float32,requires_grad=True).to('cuda')  
-       kernel1 = torch.tensor([0],dtype=torch.float32,requires_grad=True)#.to('cuda')
+       kernel1 = torch.tensor([0],dtype=torch.float32,requires_grad=True).to('cuda')
        bs, _,_,_= x.size()
        S0 = x
        p1 = extractpatches(S0,3)
