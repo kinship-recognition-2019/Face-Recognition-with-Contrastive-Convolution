@@ -122,6 +122,7 @@ def  train(args, basemodel, idreg_model, genmodel, reg_model, device, train_load
         
         hk1 = idreg_model(org_kernel_1)
         hk2 = idreg_model(org_kernel_2)
+        # print(hk1, hk2)
 
         loss2 = 0.5 * ( criterion(hk1, c1) + criterion(hk2, c2))  #identity kernel loss for each image in pair
         loss  = loss2 + loss1
@@ -365,7 +366,7 @@ def main():
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
         train(args, basemodel, idreg_model, genmodel, reg_model, device, train_loader, optimizer, criterion2, criterion1, iterno)
 
-        if iterno > 0 and iterno % 1000==0:
+        if iterno > 0 and iterno % 100==0:
             testacc = ttest(test_loader, basemodel, genmodel, reg_model,  iterno, device, args)
             f = open('LFW_performance.txt','a')
             f.write('\n'+str(iterno)+': '+str( testacc*100));
@@ -402,9 +403,9 @@ def ttest(test_loader, basemodel, genmodel, reg_model, epoch, device, args):
                 SA = reg_model(out1_a)
                 SB = reg_model(out1_b)
                 SAB = (SA + SB) / 2.0
-            SAB = torch.squeeze(SAB,1)
+            SAB = torch.squeeze(SAB, 1)
             
-            #print('SAB :',SAB)
+            #  print('SAB :',SAB)
             distances.append(SAB.data.cpu().numpy())
             #print('distances len',len(distances))
             labels.append(label.data.cpu().numpy())
