@@ -181,7 +181,7 @@ def main():
                                          noofpairs=args.batch_size, transform=train_transform)
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
         train(base_model, gen_model, reg_model, idreg_model, device, train_loader, optimizer, criterion1, criterion2, iter)
-        if iter > 0 and iter % 100 == 0:
+        if iter > 0 and iter % 1000 == 0:
             testacc = test(test_loader, base_model, gen_model, reg_model, device)
             f = open('result.txt', 'a')
             print("testacc:" + str(testacc))
