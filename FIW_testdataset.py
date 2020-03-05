@@ -17,7 +17,7 @@ class FIWTestDataset(datasets.ImageFolder):
                 label, p1, p2 = line.strip().split(',')
                 path1 = os.path.join(self.img_path, p1)
                 path2 = os.path.join(self.img_path, p2)
-                label = int(label) - 1
+                label = int(label)
                 pair_list.append((path1, path2, label))
         return pair_list
 
