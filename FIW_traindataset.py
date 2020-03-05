@@ -1,3 +1,4 @@
+import torch
 from PIL import Image
 from torch.utils.data import Dataset
 import os
@@ -32,9 +33,11 @@ class FIWTrainDataset(Dataset):
         for n in range(self.no_of_pairs):
             CatList = np.arange(0, len(self.image_list))
             i = np.random.choice(CatList)
+            # while self.image_list[i][2] != self.image_list[i][3]:
             while self.image_list[i][4] != 1:
                 i = np.random.choice(CatList)
             j = np.random.choice(CatList)
+            # while self.image_list[j][2] == self.image_list[j][3]:
             while self.image_list[j][4] != 0:
                 j = np.random.choice(CatList)
 
@@ -61,7 +64,8 @@ class FIWTrainDataset(Dataset):
                 img1 = self.transform(img1)
                 img2 = self.transform(img2)
 
-            return img1, img2, id1, id2, label
+            return img1, img2, torch.from_numpy(np.array([int(label == 1)], dtype=np.float32))
+            # return img1, img2, id1, id2, label
 
     def __len__(self):
         return len(self.train_list)
