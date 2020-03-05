@@ -54,7 +54,7 @@ class GenModel(nn.Module):
    def forward(self, x):
        # n is feature from basemodel of size bsx 192x5x5
        #kernels = torch.tensor([0],dtype=torch.float32,requires_grad=True).to('cuda')  
-       kernel1 = torch.tensor([0],dtype=torch.float32,requires_grad=True)#.to('cuda')
+       kernel1 = torch.tensor([0],dtype=torch.float32,requires_grad=True).to('cuda')
        bs, _,_,_= x.size()
        S0 = x
        p1 = extractpatches(S0,3)
@@ -214,6 +214,7 @@ def main():
     parser.add_argument('--basemodel', default='ContrastiveCNN-4', type=str, metavar='BaseModel',
                        help='model type:ContrastiveCNN-4 LightCNN-4 LightCNN-9, LightCNN-29, LightCNN-29v2')
 
+
     parser.add_argument('--save_path', default='', type=str, metavar='PATH',
                        help='path to save checkpoint (default: none)')
 
@@ -246,7 +247,7 @@ def main():
     parser.add_argument('--root_path', default='/data/Saurav/DB/CASIAaligned/', type=str, metavar='PATH', # path of the CASIA dataset
                     help='path to root path of images (default: none)')
 
-    #parser.add_argument('--num_classes', default=10574, type=int,
+    # parser.add_argument('--num_classes', default=10574, type=int,
     #                 metavar='N', help='number of classes (default: 10574)')
     parser.add_argument('--num_classes', default=1000, type=int,
                                         metavar='N', help='number of classes (default: 10574)')
@@ -273,7 +274,7 @@ def main():
         transforms.ToTensor() ])
      
     # test_loader = torch.utils.data.DataLoader(LFWDataset(dir=args.lfw_dir,pairs_path=args.lfw_pairs_path,
-    #                                         transform=test_transform),  batch_size=args.test_batch_size, shuffle=False, **kwargs)
+    #                                        transform=test_transform),  batch_size=args.test_batch_size, shuffle=False, **kwargs)
     test_dataset = FIWTestDataset(img_path=args.fiw_img_path, pairs_path=args.fiw_test_list_path, transform=test_transform)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
     
@@ -357,18 +358,18 @@ def main():
         adjust_learning_rate(optimizer, iterno)
         
         # traindataset = CasiaFaceDataset(noofpairs=args.batch_size, transform=transform, is_train=True)
-
+        #
         # train_loader = torch.utils.data.DataLoader(traindataset, batch_size=args.batch_size, shuffle=True, **kwargs)
 
         train_dataset = FIWTrainDataset(img_path=args.fiw_img_path, list_path=args.fiw_train_list_path,
-                                      noofpairs=args.batch_size, transform=transform)
+                                        noofpairs=args.batch_size, transform=transform)
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
         train(args, basemodel, idreg_model, genmodel, reg_model, device, train_loader, optimizer, criterion2, criterion1, iterno)
 
-        if iterno > 0 and iterno % 100 == 0:
+        if iterno > 0 and iterno % 100==0:
             testacc = ttest(test_loader, basemodel, genmodel, reg_model,  iterno, device, args)
             f = open('LFW_performance.txt','a')
-            f.write('\n'+str(iterno)+': '+str( testacc*100))
+            f.write('\n'+str(iterno)+': '+str( testacc*100));
             f.close()
             print('Test accuracy: {:.4f}'.format(testacc*100))
             
@@ -404,7 +405,7 @@ def ttest(test_loader, basemodel, genmodel, reg_model, epoch, device, args):
                 SAB = (SA + SB) / 2.0
             SAB = torch.squeeze(SAB, 1)
             
-            # print('SAB :',SAB)
+            #  print('SAB :',SAB)
             distances.append(SAB.data.cpu().numpy())
             #print('distances len',len(distances))
             labels.append(label.data.cpu().numpy())
