@@ -75,6 +75,8 @@ def train(base_model, gen_model, reg_model, idreg_model, device, train_loader, o
         data_1, data_2 = (data_1).to(device), (data_2).to(device)
         c1, c2 = torch.from_numpy(np.asarray(c1)).to(device), torch.from_numpy(np.asarray(c2)).to(device)
         target = torch.from_numpy(np.asarray(target)).to(device)
+        print(c1.shape)
+        print(target.shape)
 
         target = target.float().unsqueeze(1)
         optimizer.zero_grad()
@@ -82,12 +84,14 @@ def train(base_model, gen_model, reg_model, idreg_model, device, train_loader, o
         A_list, B_list, org_kernel_1, org_kernel_2 = compute_contrastive_features(data_1, data_2, base_model, gen_model, device)
         reg_1 = reg_model(A_list)
         reg_2 = reg_model(B_list)
+        print(reg_1.shape)
         SAB = (reg_1 + reg_2) / 2.0
 
         loss1 = criterion1(SAB, target)
 
         hk1 = idreg_model(org_kernel_1)
         hk2 = idreg_model(org_kernel_2)
+        print(hk1.shape)
         loss2 = 0.5 * (criterion2(hk1, c1) + criterion2(hk2, c2))
 
         loss = loss1 + loss2
@@ -114,6 +118,8 @@ def test(test_loader, base_model, gen_model, reg_model, device):
             SB = reg_model(out1_b)
             SAB = (SA + SB) / 2.0
             SAB = torch.squeeze(SAB, 1)
+            print(SAB.shape)
+            print(label.shape)
 
             distances.append(SAB.data.cpu().numpy())
             labels.append(label.data.cpu().numpy())
@@ -153,8 +159,8 @@ def main():
             transforms.Grayscale(num_output_channels=1),
             transforms.Resize(128),
             transforms.ToTensor()])
-    # test_dataset = FIWTestDataset(img_path=args.fiw_img_path, pairs_path=args.fiw_test_list_path, transform=test_transform)
-    test_dataset = LFWDataset(img_path=args.lfw_img_path, pairs_path=args.lfw_list_path, transform=test_transform)
+    test_dataset = FIWTestDataset(img_path=args.fiw_img_path, pairs_path=args.fiw_test_list_path, transform=test_transform)
+    # test_dataset = LFWDataset(img_path=args.lfw_img_path, pairs_path=args.lfw_list_path, transform=test_transform)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
 
     train_transform = transforms.Compose([
@@ -175,13 +181,13 @@ def main():
 
     for iter in range(args.start_epoch + 1, args.iters + 1):
         adjust_learning_rate(optimizer, iter)
-        # train_dataset = FIWTrainDataset(img_path=args.fiw_img_path, list_path=args.fiw_train_list_path,
-        #                                 noofpairs=args.batch_size, transform=train_transform)
-        train_dataset = CasiaFaceDataset(img_path=args.casia_img_path, list_path=args.casia_list_path,
+        train_dataset = FIWTrainDataset(img_path=args.fiw_img_path, list_path=args.fiw_train_list_path,
                                          noofpairs=args.batch_size, transform=train_transform)
+        # train_dataset = CasiaFaceDataset(img_path=args.casia_img_path, list_path=args.casia_list_path,
+        #                                 noofpairs=args.batch_size, transform=train_transform)
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
         train(base_model, gen_model, reg_model, idreg_model, device, train_loader, optimizer, criterion1, criterion2, iter)
-        if iter > 0 and iter % 1000 == 0:
+        if iter > 0 and iter % 1 == 0:
             testacc = test(test_loader, base_model, gen_model, reg_model, device)
             f = open('result.txt', 'a')
             print("testacc:" + str(testacc))

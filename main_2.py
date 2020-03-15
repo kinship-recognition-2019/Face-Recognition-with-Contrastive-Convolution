@@ -19,6 +19,8 @@ class ContrastiveLoss(nn.Module):
 
     def forward(self, output1, output2, label):
         euclidean_distance = F.pairwise_distance(output1, output2)
+        print(euclidean_distance)
+        print(label)
         loss_contrastive = torch.mean((1-label) * torch.pow(euclidean_distance, 2) +
                                       (label) * torch.pow(torch.clamp(self.margin - euclidean_distance, min=0.0), 2))
 
@@ -57,6 +59,7 @@ if __name__ == '__main__':
         transforms.ToTensor()])
     test_dataset = FIWTestDataset(img_path=args.fiw_img_path, pairs_path=args.fiw_test_list_path, transform=test_transform)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size, shuffle=False)
+    # criterion = nn.BCELoss()
 
     for epoch in range(0, args.iters):
         train_dataset = FIWTrainDataset(img_path=args.fiw_img_path, list_path=args.fiw_train_list_path, noofpairs=args.batch_size, transform=train_transform)
@@ -78,7 +81,10 @@ if __name__ == '__main__':
                     output1, output2 = net(data_a, data_b)
                     euclidean_distance = F.pairwise_distance(output1, output2)
                     for i in range(0, len(label)):
-                        if euclidean_distance[i] < 10 and label[i] == 1: correct += 1
-                        elif euclidean_distance[i] >= 10 and label[i] == 0: correct += 1
+                        if euclidean_distance[i] < 1 and label[i] == 1: correct += 1
+                        elif euclidean_distance[i] >= 1 and label[i] == 0: correct += 1
+
+                        # print(euclidean_distance[i])
+                        # print(label[i])
                 print('Test accuracy: ' + str(1.0 * correct / 3000))
 

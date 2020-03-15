@@ -100,8 +100,7 @@ class Identity_Regressor(nn.Module):
         x = self.fc3(x)
         return x
 
-def  train(args, basemodel, idreg_model, genmodel, reg_model, device, train_loader, optimizer, criterion,criterion1, iteration):
-
+def train(args, basemodel, idreg_model, genmodel, reg_model, device, train_loader, optimizer, criterion,criterion1, iteration):
     genmodel.train()
     reg_model.train()
     idreg_model.train()
@@ -110,6 +109,8 @@ def  train(args, basemodel, idreg_model, genmodel, reg_model, device, train_load
         data_1, data_2, c1, c2, target = (data_1).to(device), (data_2).to(device), torch.from_numpy(np.asarray(c1)).to(device), torch.from_numpy(np.asarray(c2)).to(device), torch.from_numpy(np.asarray(target)).to(device)
         
         target = target.float().unsqueeze(1)
+        # print(c1.shape)
+        # print(target.shape)
 
         optimizer.zero_grad()
 
@@ -117,11 +118,13 @@ def  train(args, basemodel, idreg_model, genmodel, reg_model, device, train_load
         reg_1 = reg_model(A_list)
         reg_2 = reg_model(B_list)
         SAB = (reg_1 + reg_2)/2.0
+        # print(reg_1.shape)
 
         loss1 =  criterion1(SAB, target)  #pairwise similarity loss
         
         hk1 = idreg_model(org_kernel_1)
         hk2 = idreg_model(org_kernel_2)
+        # print(hk1.shape)
 
         loss2 = 0.5 * ( criterion(hk1, c1) + criterion(hk2, c2))  #identity kernel loss for each image in pair
         loss  = loss2 + loss1
@@ -247,7 +250,7 @@ def main():
                     help='path to root path of images (default: none)')
 
     # parser.add_argument('--num_classes', default=10574, type=int,
-    #                 metavar='N', help='number of classes (default: 10574)')
+    #                   metavar='N', help='number of classes (default: 10574)')
     parser.add_argument('--num_classes', default=1000, type=int,
                                         metavar='N', help='number of classes (default: 10574)')
 
@@ -271,7 +274,7 @@ def main():
         transforms.Grayscale(num_output_channels=1),
         transforms.Resize(128),
         transforms.ToTensor() ])
-     
+    # print(" ", args.lfw_dir)
     # test_loader = torch.utils.data.DataLoader(LFWDataset(dir=args.lfw_dir,pairs_path=args.lfw_pairs_path,
     #                                        transform=test_transform),  batch_size=args.test_batch_size, shuffle=False, **kwargs)
     test_dataset = FIWTestDataset(img_path=args.fiw_img_path, pairs_path=args.fiw_test_list_path, transform=test_transform)
@@ -357,15 +360,14 @@ def main():
         adjust_learning_rate(optimizer, iterno)
         
         # traindataset = CasiaFaceDataset(noofpairs=args.batch_size, transform=transform, is_train=True)
-        #
         # train_loader = torch.utils.data.DataLoader(traindataset, batch_size=args.batch_size, shuffle=True, **kwargs)
 
         train_dataset = FIWTrainDataset(img_path=args.fiw_img_path, list_path=args.fiw_train_list_path,
-                                        noofpairs=args.batch_size, transform=transform)
+                                     noofpairs=args.batch_size, transform=transform)
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
         train(args, basemodel, idreg_model, genmodel, reg_model, device, train_loader, optimizer, criterion2, criterion1, iterno)
 
-        if iterno > 0 and iterno % 100==0:
+        if iterno > 0 and iterno % 1 ==0:
             testacc = ttest(test_loader, basemodel, genmodel, reg_model,  iterno, device, args)
             f = open('LFW_performance.txt','a')
             f.write('\n'+str(iterno)+': '+str( testacc*100))
@@ -403,6 +405,8 @@ def ttest(test_loader, basemodel, genmodel, reg_model, epoch, device, args):
                 SB = reg_model(out1_b)
                 SAB = (SA + SB) / 2.0
             SAB = torch.squeeze(SAB,1)
+            # print(SAB.shape)
+            # print(label.shape)
             
             #print('SAB :',SAB)
             distances.append(SAB.data.cpu().numpy())
@@ -419,7 +423,10 @@ def ttest(test_loader, basemodel, genmodel, reg_model, epoch, device, args):
         #print('distances ',distances)
 
         labels = np.array([sublabel for label in labels for sublabel in label])
-        distances  =  np.array([subdist for dist in distances for subdist in dist]) 
+        distances  =  np.array([subdist for dist in distances for subdist in dist])
+        # print(labels)
+        # print(distances)
+
         print('target length',len(labels))
         print('distances length ',len(distances))
 

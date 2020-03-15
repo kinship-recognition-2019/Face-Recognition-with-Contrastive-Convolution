@@ -1,3 +1,4 @@
+import torch
 from PIL import Image
 from torch.utils.data import Dataset
 import os
@@ -61,7 +62,8 @@ class FIWTrainDataset(Dataset):
                 img1 = self.transform(img1)
                 img2 = self.transform(img2)
 
-            return img1, img2, id1, id2, label
+            # return img1, img2, id1, id2, label
+            return img1, img2, torch.from_numpy(np.array([label == 1], dtype=np.float32))
 
     def __len__(self):
         return len(self.train_list)
