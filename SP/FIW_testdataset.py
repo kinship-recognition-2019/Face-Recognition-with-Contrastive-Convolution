@@ -1,6 +1,9 @@
 import torchvision.datasets as datasets
 import os
 
+# FIW亲属数据集的测试集处理
+# 继承pytorch的Dataset类，迭代器返回两张人脸以及是否同一家族标签
+
 
 class FIWTestDataset(datasets.ImageFolder):
     def __init__(self, img_path, pairs_path, transform):

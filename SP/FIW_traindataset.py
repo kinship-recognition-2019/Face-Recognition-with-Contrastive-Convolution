@@ -3,6 +3,9 @@ from torch.utils.data import Dataset
 import os
 import numpy as np
 
+# FIW亲属数据集的训练集处理
+# 继承pytorch的Dataset类，迭代器返回两张人脸、两张人脸各自所属的家庭编号以及是否同一家族标签
+
 
 class FIWTrainDataset(Dataset):
     def __init__(self, img_path, list_path, noofpairs=4, transform=None):
