@@ -30,7 +30,7 @@ class CasiaFaceDataset(Dataset):
         self.train_list = self.create_pairs()
 
     def get_id_imagelist(self):
-        f = open('casialist.txt')
+        f = open('../dataset/casialist.txt')
         lines = f.readlines()
         #print(len(lines),lines[0:5])
         subjectdict = dict()

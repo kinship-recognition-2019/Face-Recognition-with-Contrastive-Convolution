@@ -4,6 +4,7 @@ from scipy import interpolate
 
 
 def evaluate(distances, labels, nrof_folds=10):
+    # thresholds = np.arange(0, 1, 0.1)
     thresholds = np.arange(0, 1, 0.1)
     accuracy = calculate_roc(thresholds, distances, labels, nrof_folds=nrof_folds)
     return accuracy

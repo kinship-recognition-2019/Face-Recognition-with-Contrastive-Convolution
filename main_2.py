@@ -10,6 +10,7 @@ from siamese_network import SiameseNetwork
 from FIW_traindataset import FIWTrainDataset
 from FIW_testdataset import FIWTestDataset
 from torchvision import transforms
+from eval_metrics import evaluate
 
 
 class ContrastiveLoss(nn.Module):
@@ -19,8 +20,8 @@ class ContrastiveLoss(nn.Module):
 
     def forward(self, output1, output2, label):
         euclidean_distance = F.pairwise_distance(output1, output2)
-        print(euclidean_distance)
-        print(label)
+        # print(euclidean_distance)
+        # print(label)
         loss_contrastive = torch.mean((1-label) * torch.pow(euclidean_distance, 2) +
                                       (label) * torch.pow(torch.clamp(self.margin - euclidean_distance, min=0.0), 2))
 
@@ -74,17 +75,20 @@ if __name__ == '__main__':
             loss.backward()
             optimizer.step()
             print('Iteration' + str(epoch), 'Batch' + str(batch_idx), "loss=", loss.item())
-        if epoch % 100 == 0:
+        if epoch % 10 == 0:
             with torch.no_grad():
-                correct = 0
+                labels, distances = [], []
                 for batch_idx, (data_a, data_b, label) in enumerate(test_loader):
                     output1, output2 = net(data_a, data_b)
                     euclidean_distance = F.pairwise_distance(output1, output2)
-                    for i in range(0, len(label)):
-                        if euclidean_distance[i] < 1 and label[i] == 1: correct += 1
-                        elif euclidean_distance[i] >= 1 and label[i] == 0: correct += 1
 
-                        # print(euclidean_distance[i])
-                        # print(label[i])
-                print('Test accuracy: ' + str(1.0 * correct / 3000))
+                    distances.append(euclidean_distance.numpy())
+                    labels.append(label.numpy())
+                labels = np.array([sublabel for label in labels for sublabel in label])
+                distances = np.array([subdist for dist in distances for subdist in dist])
+                print(distances)
+                print(labels)
+                acc = evaluate(distances, labels)
+                print(acc)
+                print("acc", str(np.mean(acc)))
 

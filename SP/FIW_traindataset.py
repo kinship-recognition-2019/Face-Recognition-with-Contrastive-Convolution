@@ -1,4 +1,3 @@
-import torch
 from PIL import Image
 from torch.utils.data import Dataset
 import os
@@ -66,14 +65,3 @@ class FIWTrainDataset(Dataset):
 
     def __len__(self):
         return len(self.train_list)
-
-
-if __name__ == '__main__':
-    img_path = './dataset/FIDs_NEW'
-    list_path = './dataset/train_list.csv'
-
-    ff = FIWTrainDataset(img_path, list_path, 4)
-    f = open('out.txt', 'w')
-    list = ff.create_pairs()
-    f.write(str(list) + '\n')
-    f.write(str(list[0])+'\n')

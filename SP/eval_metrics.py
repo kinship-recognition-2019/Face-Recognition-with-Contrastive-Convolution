@@ -8,20 +8,6 @@ from sklearn.model_selection import KFold
 from scipy import interpolate
 import tqdm
 
-def myevaluate(scores,gt, nrof_folds=10):
-    fold_size = 600 # 600 pairs in each fold
-    roc_auc = np.zeros(10)
-    roc_eer = np.zeros(10)
-    for i in tqdm.tqdm(range(10)):
-       start = i * fold_size
-       end = (i+1) * fold_size
-       scores_fold = scores[start:end]
-       gt_fold = gt[start:end]
-       roc_auc[i] = sklearn.metrics.roc_auc_score(gt_fold, scores_fold)
-       fpr, tpr, _ = sklearn.metrics.roc_curve(gt_fold, scores_fold)
-       roc_eer[i] = brentq(lambda x: 1. - x - interpolate.interp1d(fpr, tpr)(x), 0., 1.)
-    print( 'AUC: %0.4f +/- %0.4f, EER: %0.4f +/- %0.4f' %  (np.mean(roc_auc), np.std(roc_auc),np.mean(roc_eer), np.std(roc_eer)) )
-
 def evaluate(distances, labels, nrof_folds=10):
     # Calculate evaluation metrics
     thresholds = np.arange(0, 1, 0.05)
