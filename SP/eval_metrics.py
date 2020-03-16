@@ -1,12 +1,10 @@
-#written by Saurav Rai
-import operator
 import numpy as np
-import sklearn.metrics
-from sklearn import metrics
-from scipy.optimize import brentq
 from sklearn.model_selection import KFold
-from scipy import interpolate
-import tqdm
+
+
+# 这是原作者写的，用于测试时计算acc
+# 将图片十分，其中九份作为训练集，找到判断两个人是否具有亲属关系的SAB阈值，最后在一份的测试集上进行测试，得出acc
+# 准确率的计算采用ROC
 
 def evaluate(distances, labels, nrof_folds=10):
     # Calculate evaluation metrics
@@ -23,6 +21,7 @@ def evaluate(distances, labels, nrof_folds=10):
     '''
     #return tpr, fpr, accuracy#, val, val_std, far
     return  accuracy
+
 
 def calculate_roc(thresholds, distances, labels, nrof_folds=10):
     nrof_pairs = min(len(labels), len(distances))
@@ -54,7 +53,6 @@ def calculate_roc(thresholds, distances, labels, nrof_folds=10):
         fpr = np.mean(fprs,0)
         '''
     #print('sairam4')
-    print("fina", accuracy)
     return accuracy #tpr, fpr, accuracy
 
 

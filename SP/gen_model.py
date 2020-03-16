@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 
+# 第二层网络 kernel generator
+# 输出针对不同人脸的kernel
 
 def extractpatches(x, patch_size):
     patches = x.unfold(2, patch_size,  1).unfold(3, patch_size, 1)

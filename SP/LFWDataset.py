@@ -5,6 +5,9 @@ import os
 import numpy as np
 from tqdm import tqdm
 
+# 原作者写的LFW测试集处理
+
+
 class LFWDataset(datasets.ImageFolder):
     '''
     '''

@@ -16,6 +16,9 @@ from collections import defaultdict
 import glob
 import random
 
+
+# 原作者写的CASIA训练集处理
+
 class CasiaFaceDataset(Dataset):
     def __init__(self, noofpairs = 4, transform = None ,is_train = True, trainfile = None):
         super().__init__()
