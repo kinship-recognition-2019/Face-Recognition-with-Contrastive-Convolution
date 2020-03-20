@@ -21,6 +21,7 @@ from tqdm import tqdm
 
 # 训练函数
 def train(args, basemodel, idreg_model, genmodel, reg_model, device, train_loader, optimizer, criterion, criterion1, iteration):
+    basemodel.train()
     genmodel.train()
     reg_model.train()
     idreg_model.train()
@@ -58,6 +59,8 @@ def train(args, basemodel, idreg_model, genmodel, reg_model, device, train_loade
 # 测试函数
 def ttest(test_loader, basemodel, genmodel, reg_model, epoch, device, args):
     basemodel.eval()
+    genmodel.eval()
+    reg_model.eval()
 
     labels, distance, distances = [], [], []
 
@@ -148,29 +151,18 @@ def adjust_learning_rate(optimizer, epoch):
 def main():
     # 参数
     parser = argparse.ArgumentParser(description='PyTorch Contrastive Convolution for FR')
-    parser.add_argument('--batch_size', type=int, default=64, metavar='N',
-                        help='input batch size for training (default: 64)')
-    parser.add_argument('--test_batch_size', type=int, default=128, metavar='BST',
-                        help='input batch size for testing (default: 1000)')
-    parser.add_argument('--iters', type=int, default=200000, metavar='N',
-                        help='number of iterations to train (default: 10)')
-    parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
-                        help='manual epoch number (useful on restarts)')
-    parser.add_argument('--lr', type=float, default=0.1, metavar='LR',
-                        help='learning rate (default: 0.01)')
-    parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
-                        help='SGD momentum (default: 0.5)')
+    parser.add_argument('--batch_size', type=int, default=64, metavar='N', help='input batch size for training (default: 64)')
+    parser.add_argument('--test_batch_size', type=int, default=128, metavar='BST', help='input batch size for testing (default: 1000)')
+    parser.add_argument('--iters', type=int, default=200000, metavar='N', help='number of iterations to train (default: 10)')
+    parser.add_argument('--start-epoch', default=0, type=int, metavar='N', help='manual epoch number (useful on restarts)')
+    parser.add_argument('--lr', type=float, default=0.1, metavar='LR', help='learning rate (default: 0.01)')
+    parser.add_argument('--momentum', type=float, default=0.9, metavar='M', help='SGD momentum (default: 0.5)')
 
-    parser.add_argument('--no-cuda', action='store_true', default=False,
-                        help='disables CUDA training')
-    parser.add_argument('--log-interval', type=int, default=100, metavar='N',
-                        help='how many batches to wait before logging training status')
-    parser.add_argument('--pretrained', default=False, type=bool,
-                        metavar='N', help='use pretrained ligthcnn model:True / False no pretrainedmodel )')
-    parser.add_argument('--save_path', default='', type=str, metavar='PATH',
-                        help='path to save checkpoint (default: none)')
-    parser.add_argument('--resume', default='', type=str, metavar='PATH',
-                        help='path to latest checkpoint (default: none)')
+    parser.add_argument('--no-cuda', action='store_true', default=False, help='disables CUDA training')
+    parser.add_argument('--log-interval', type=int, default=100, metavar='N', help='how many batches to wait before logging training status')
+    parser.add_argument('--pretrained', default=False, type=bool, metavar='N', help='use pretrained ligthcnn model:True / False no pretrainedmodel )')
+    parser.add_argument('--save_path', default='', type=str, metavar='PATH', help='path to save checkpoint (default: none)')
+    parser.add_argument('--resume', default='', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
     parser.add_argument('--compute_contrastive', default=True, type=bool,
                         metavar='N', help='use contrastive featurs or base mode features: True / False )')
     parser.add_argument('--log_interval', type=int, default=10,
@@ -219,33 +211,32 @@ def main():
         transforms.ToTensor(), ])
 
     # 模型
-    basemodel = Contrastive_4Layers(num_classes=args.num_classes)
 
-    if args.pretrained is True: # 是否从断点开始
-        print('Loading pretrained model')
 
-        pre_trained_dict = torch.load('./LightenedCNN_4_torch.pth', map_location=lambda storage, loc: storage)
-
-        model_dict = basemodel.state_dict()
-        basemodel = basemodel.to(device)
-        pre_trained_dict['features.0.filter.weight'] = pre_trained_dict.pop('0.weight')
-        pre_trained_dict['features.0.filter.bias'] = pre_trained_dict.pop('0.bias')
-        pre_trained_dict['features.2.filter.weight'] = pre_trained_dict.pop('2.weight')
-        pre_trained_dict['features.2.filter.bias'] = pre_trained_dict.pop('2.bias')
-        pre_trained_dict['features.4.filter.weight'] = pre_trained_dict.pop('4.weight')
-        pre_trained_dict['features.4.filter.bias'] = pre_trained_dict.pop('4.bias')
-        pre_trained_dict['features.6.filter.weight'] = pre_trained_dict.pop('6.weight')
-        pre_trained_dict['features.6.filter.bias'] = pre_trained_dict.pop('6.bias')
-        pre_trained_dict['fc1.filter.weight'] = pre_trained_dict.pop('9.1.weight')
-        pre_trained_dict['fc1.filter.bias'] = pre_trained_dict.pop('9.1.bias')
-        pre_trained_dict['fc2.weight'] = pre_trained_dict.pop('12.1.weight')
-        pre_trained_dict['fc2.bias'] = pre_trained_dict.pop('12.1.bias')
-        my_dict = {k: v for k, v in pre_trained_dict.items() if ("fc2" not in k)}
-        model_dict.update(my_dict)
-
-        basemodel.load_state_dict(model_dict, strict=False)
-
-    basemodel = basemodel.to(device)
+    # if args.pretrained is True: # 是否从断点开始
+    #     print('Loading pretrained model')
+    #
+    #     pre_trained_dict = torch.load('./LightenedCNN_4_torch.pth', map_location=lambda storage, loc: storage)
+    #
+    #     model_dict = basemodel.state_dict()
+    #     basemodel = basemodel.to(device)
+    #     pre_trained_dict['features.0.filter.weight'] = pre_trained_dict.pop('0.weight')
+    #     pre_trained_dict['features.0.filter.bias'] = pre_trained_dict.pop('0.bias')
+    #     pre_trained_dict['features.2.filter.weight'] = pre_trained_dict.pop('2.weight')
+    #     pre_trained_dict['features.2.filter.bias'] = pre_trained_dict.pop('2.bias')
+    #     pre_trained_dict['features.4.filter.weight'] = pre_trained_dict.pop('4.weight')
+    #     pre_trained_dict['features.4.filter.bias'] = pre_trained_dict.pop('4.bias')
+    #     pre_trained_dict['features.6.filter.weight'] = pre_trained_dict.pop('6.weight')
+    #     pre_trained_dict['features.6.filter.bias'] = pre_trained_dict.pop('6.bias')
+    #     pre_trained_dict['fc1.filter.weight'] = pre_trained_dict.pop('9.1.weight')
+    #     pre_trained_dict['fc1.filter.bias'] = pre_trained_dict.pop('9.1.bias')
+    #     pre_trained_dict['fc2.weight'] = pre_trained_dict.pop('12.1.weight')
+    #     pre_trained_dict['fc2.bias'] = pre_trained_dict.pop('12.1.bias')
+    #     my_dict = {k: v for k, v in pre_trained_dict.items() if ("fc2" not in k)}
+    #     model_dict.update(my_dict)
+    #
+    #     basemodel.load_state_dict(model_dict, strict=False)
+    basemodel = Contrastive_4Layers(num_classes=args.num_classes).to(device)
     genmodel = GenModel(512).to(device)
     reg_model = Regressor(686).to(device)
     idreg_model = Identity_Regressor(14 * 512 * 3 * 3, args.num_classes).to(device)
@@ -298,12 +289,12 @@ def main():
             print('Test accuracy: {:.4f}'.format(testacc * 100))
 
         # 每一万轮保存一次断点
-        # if iterno > 0 and iterno % 10000 == 0:
+        # if iterno % 10000 == 0:
         #     save_name = args.save_path + 'base_gen_model' + str(iterno) + '_checkpoint.pth.tar'
         #     save_checkpoint(
         #         {'iterno': iterno, 'state_dict1': genmodel.state_dict(), 'state_dict2': basemodel.state_dict(),
         #          'optimizer': optimizer.state_dict(),
-        #          'testacc': testacc}, save_name)
+        #          }, save_name)
 
 
 if __name__ == '__main__':
