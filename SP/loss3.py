@@ -12,19 +12,16 @@ from SP.regressor import Regressor
 from SP.base_model import Contrastive_4Layers
 from SP.eval_metrics import evaluate
 from SP.identity_regressor import Identity_Regressor
-from SP.LFWDataset import LFWDataset
-from SP.onlineCasiadataset_loader import CasiaFaceDataset
+from SP.FIW_traindataset import FIWTrainDataset
+from SP.FIW_testdataset import FIWTestDataset
 from tqdm import tqdm
 
 # 运行main，用于原论文 - 两张人脸是否属于同一个人问题
 
 
 # 训练函数
-def train(args, basemodel, idreg_model, genmodel, reg_model, device, train_loader, optimizer, criterion, criterion1, iteration):
-    basemodel.train()
-    genmodel.train()
-    reg_model.train()
-    idreg_model.train()
+def train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, device, train_loader, optimizer, criterion, criterion1, iteration):
+    reg_model_kinship.train()
 
     for batch_idx, (data_1, data_2, c1, c2, target) in enumerate(train_loader):
         data_1, data_2, c1, c2, target = (data_1).to(device), (data_2).to(device), torch.from_numpy(np.asarray(c1)).to(
@@ -39,22 +36,26 @@ def train(args, basemodel, idreg_model, genmodel, reg_model, device, train_loade
         reg_1 = reg_model(A_list)
         reg_2 = reg_model(B_list)
         SAB = (reg_1 + reg_2) / 2.0
-
         loss1 = criterion1(SAB, target)
+
+        reg_3 = reg_model_kinship(A_list)
+        reg_4 = reg_model_kinship(B_list)
+        PAB = (reg_3 + reg_4) / 2.0
+        loss3 = criterion1(PAB, target)
 
         hk1 = idreg_model(org_kernel_1)
         hk2 = idreg_model(org_kernel_2)
 
         loss2 = 0.5 * (criterion(hk1, c1) + criterion(hk2, c2))
-        loss = loss2 + loss1
+        loss = loss2 + loss1 + loss3
 
         loss.backward()
 
         optimizer.step()
 
-        print('Train iter: {} [{}/{} ({:.0f}%)]\tLoss: {:.4f} {:.4f} {:.4f}'.format(
+        print('Train iter: {} [{}/{} ({:.0f}%)]\tLoss: {:.4f} {:.4f} {:.4f} {:.4f}'.format(
             iteration, batch_idx * len(data_1), len(train_loader.dataset), 100. * batch_idx / len(train_loader),
-            loss.item(), loss1.item(), loss2.item()))
+            loss.item(), loss1.item(), loss2.item(), loss3.item()))
 
 # 测试函数
 def ttest(test_loader, basemodel, genmodel, reg_model, epoch, device, args):
@@ -159,7 +160,7 @@ def main():
     parser.add_argument('--log-interval', type=int, default=100, metavar='N', help='how many batches to wait before logging training status')
     parser.add_argument('--pretrained', default=False, type=bool, metavar='N', help='use pretrained ligthcnn model:True / False no pretrainedmodel )')
     parser.add_argument('--save_path', default='', type=str, metavar='PATH', help='path to save checkpoint (default: none)')
-    parser.add_argument('--resume', default='', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
+    parser.add_argument('--resume', default='model3_checkpoint.pth.tar', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
     parser.add_argument('--compute_contrastive', default=True, type=bool,
                         metavar='N', help='use contrastive featurs or base mode features: True / False )')
     parser.add_argument('--log_interval', type=int, default=10,
@@ -195,11 +196,9 @@ def main():
         transforms.Resize(128),
         transforms.ToTensor()])
 
-    test_loader = torch.utils.data.DataLoader(LFWDataset(dir=args.lfw_dir,pairs_path=args.lfw_pairs_path,
-                                           transform=test_transform),  batch_size=args.test_batch_size, shuffle=False, **kwargs)
-    # test_dataset = FIWTestDataset(img_path=args.fiw_img_path, pairs_path=args.fiw_test_list_path,
-    #                               transform=test_transform)
-    # test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
+    test_dataset = FIWTestDataset(img_path=args.fiw_img_path, pairs_path=args.fiw_test_list_path,
+                                  transform=test_transform)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
 
     # 训练集的transform函数
     transform = transforms.Compose([
@@ -207,36 +206,13 @@ def main():
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(), ])
 
-    # if args.pretrained is True: # 是否从断点开始
-    #     print('Loading pretrained model')
-    #
-    #     pre_trained_dict = torch.load('./LightenedCNN_4_torch.pth', map_location=lambda storage, loc: storage)
-    #
-    #     model_dict = basemodel.state_dict()
-    #     basemodel = basemodel.to(device)
-    #     pre_trained_dict['features.0.filter.weight'] = pre_trained_dict.pop('0.weight')
-    #     pre_trained_dict['features.0.filter.bias'] = pre_trained_dict.pop('0.bias')
-    #     pre_trained_dict['features.2.filter.weight'] = pre_trained_dict.pop('2.weight')
-    #     pre_trained_dict['features.2.filter.bias'] = pre_trained_dict.pop('2.bias')
-    #     pre_trained_dict['features.4.filter.weight'] = pre_trained_dict.pop('4.weight')
-    #     pre_trained_dict['features.4.filter.bias'] = pre_trained_dict.pop('4.bias')
-    #     pre_trained_dict['features.6.filter.weight'] = pre_trained_dict.pop('6.weight')
-    #     pre_trained_dict['features.6.filter.bias'] = pre_trained_dict.pop('6.bias')
-    #     pre_trained_dict['fc1.filter.weight'] = pre_trained_dict.pop('9.1.weight')
-    #     pre_trained_dict['fc1.filter.bias'] = pre_trained_dict.pop('9.1.bias')
-    #     pre_trained_dict['fc2.weight'] = pre_trained_dict.pop('12.1.weight')
-    #     pre_trained_dict['fc2.bias'] = pre_trained_dict.pop('12.1.bias')
-    #     my_dict = {k: v for k, v in pre_trained_dict.items() if ("fc2" not in k)}
-    #     model_dict.update(my_dict)
-    #
-    #     basemodel.load_state_dict(model_dict, strict=False)
     basemodel = Contrastive_4Layers(num_classes=args.num_classes).to(device)
     genmodel = GenModel(512).to(device)
     reg_model = Regressor(686).to(device)
+    reg_model_kinship = Regressor(686).to(device)
     idreg_model = Identity_Regressor(14 * 512 * 3 * 3, args.num_classes).to(device)
 
-    params = list(basemodel.parameters()) + list(genmodel.parameters()) + list(reg_model.parameters()) + list(
-        idreg_model.parameters())
+    params = list(reg_model_kinship.parameters())
     optimizer = optim.SGD(params, lr=args.lr, momentum=args.momentum)
 
     if args.resume:
@@ -254,6 +230,7 @@ def main():
         else:
             print("=> no checkpoint found at '{}'".format(args.resume))
 
+
     # 损失函数
     criterion2 = nn.CrossEntropyLoss().to(device)
     criterion1 = nn.BCELoss().to(device)
@@ -262,35 +239,30 @@ def main():
 
     for iterno in range(args.start_epoch + 1, args.iters + 1):
         adjust_learning_rate(optimizer, iterno)
-        # 训练集处理，采用CASIA-WebFace
-        traindataset = CasiaFaceDataset(noofpairs=args.batch_size, transform=transform, is_train=True)
-        train_loader = torch.utils.data.DataLoader(traindataset, batch_size=args.batch_size, shuffle=True, **kwargs)
-
-        # train_dataset = FIWTrainDataset(img_path=args.fiw_img_path, list_path=args.fiw_train_list_path,
-        #                                 noofpairs=args.batch_size, transform=transform)
-        # train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
+        train_dataset = FIWTrainDataset(img_path=args.fiw_img_path, list_path=args.fiw_train_list_path,
+                                        noofpairs=args.batch_size, transform=transform)
+        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
 
         # 训练
-        train(args, basemodel, idreg_model, genmodel, reg_model, device, train_loader, optimizer, criterion2,
-              criterion1, iterno)
+        train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, device, train_loader,
+              optimizer, criterion2, criterion1, iterno)
 
-        if iterno > 0 and iterno % 1000 == 0:
+        if iterno % 100 == 0:
             # 每100轮训练进行一次测试
-            testacc = ttest(test_loader, basemodel, genmodel, reg_model, iterno, device, args)
+            testacc = ttest(test_loader, basemodel, genmodel, reg_model_kinship, iterno, device, args)
             f = open('LFW_performance.txt', 'a')
             f.write('\n' + str(iterno) + ': ' + str(testacc * 100))
             f.close()
             print('Test accuracy: {:.4f}'.format(testacc * 100))
 
-        # 每一万轮保存一次断点
-        if iterno % 10000 == 0:
-            save_name = args.save_path + 'model' + str(iterno) + '_checkpoint.pth.tar'
-            save_checkpoint(
-                {'iterno': iterno,
-                 'state_dict1': genmodel.state_dict(), 'state_dict2': basemodel.state_dict(),
-                 'state_dict3': reg_model.state_dict(), 'state_dict4': idreg_model.state_dict(),
-                 # 'optimizer': optimizer.state_dict(),
-                 }, save_name)
+        # if iterno % 10000 == 0:
+        #     save_name = args.save_path + 'model_kinship' + str(iterno) + '_checkpoint.pth.tar'
+        #     save_checkpoint(
+        #         {'iterno': iterno,
+        #          'state_dict1': genmodel.state_dict(), 'state_dict2': basemodel.state_dict(),
+        #          'state_dict3': reg_model.state_dict(), 'state_dict4': idreg_model.state_dict(),
+        #          'optimizer': optimizer.state_dict(),
+        #          }, save_name)
 
 
 if __name__ == '__main__':
