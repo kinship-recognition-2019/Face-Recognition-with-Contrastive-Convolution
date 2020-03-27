@@ -160,7 +160,7 @@ def main():
     parser.add_argument('--log-interval', type=int, default=100, metavar='N', help='how many batches to wait before logging training status')
     parser.add_argument('--pretrained', default=False, type=bool, metavar='N', help='use pretrained ligthcnn model:True / False no pretrainedmodel )')
     parser.add_argument('--save_path', default='', type=str, metavar='PATH', help='path to save checkpoint (default: none)')
-    parser.add_argument('--resume', default='model3_checkpoint.pth.tar', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
+    parser.add_argument('--resume', default='model200000_checkpoint.pth.tar', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
     parser.add_argument('--compute_contrastive', default=True, type=bool,
                         metavar='N', help='use contrastive featurs or base mode features: True / False )')
     parser.add_argument('--log_interval', type=int, default=10,
@@ -219,7 +219,7 @@ def main():
         if os.path.isfile(args.resume):
             print("=> loading checkpoint '{}'".format(args.resume))
             checkpoint = torch.load(args.resume)
-            args.start_epoch = checkpoint['iterno']
+            # args.start_epoch = checkpoint['iterno']
             genmodel.load_state_dict(checkpoint['state_dict1'])
             basemodel.load_state_dict(checkpoint['state_dict2'])
             reg_model.load_state_dict(checkpoint['state_dict3'])
@@ -255,14 +255,14 @@ def main():
             f.close()
             print('Test accuracy: {:.4f}'.format(testacc * 100))
 
-        # if iterno % 10000 == 0:
-        #     save_name = args.save_path + 'model_kinship' + str(iterno) + '_checkpoint.pth.tar'
-        #     save_checkpoint(
-        #         {'iterno': iterno,
-        #          'state_dict1': genmodel.state_dict(), 'state_dict2': basemodel.state_dict(),
-        #          'state_dict3': reg_model.state_dict(), 'state_dict4': idreg_model.state_dict(),
-        #          'optimizer': optimizer.state_dict(),
-        #          }, save_name)
+        if iterno % 10000 == 0:
+             save_name = args.save_path + 'model_kinship' + str(iterno) + '_checkpoint.pth.tar'
+             save_checkpoint(
+                 {'iterno': iterno,
+                  'state_dict1': genmodel.state_dict(), 'state_dict2': basemodel.state_dict(),
+                  'state_dict3': reg_model.state_dict(), 'state_dict4': idreg_model.state_dict(),
+                  'optimizer': optimizer.state_dict(),
+                  }, save_name)
 
 
 if __name__ == '__main__':
