@@ -16,6 +16,7 @@ from SP.LFWDataset import LFWDataset
 from SP.onlineCasiadataset_loader import CasiaFaceDataset
 from tqdm import tqdm
 
+
 # 运行main，用于原论文 - 两张人脸是否属于同一个人问题
 
 
@@ -159,7 +160,7 @@ def main():
     parser.add_argument('--log-interval', type=int, default=100, metavar='N', help='how many batches to wait before logging training status')
     parser.add_argument('--pretrained', default=False, type=bool, metavar='N', help='use pretrained ligthcnn model:True / False no pretrainedmodel )')
     parser.add_argument('--save_path', default='', type=str, metavar='PATH', help='path to save checkpoint (default: none)')
-    parser.add_argument('--resume', default='', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
+    parser.add_argument('--resume', default='model200000_checkpoint.pth.tar', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
     parser.add_argument('--compute_contrastive', default=True, type=bool,
                         metavar='N', help='use contrastive featurs or base mode features: True / False )')
     parser.add_argument('--log_interval', type=int, default=10,
@@ -196,7 +197,7 @@ def main():
         transforms.ToTensor()])
 
     test_loader = torch.utils.data.DataLoader(LFWDataset(dir=args.lfw_dir,pairs_path=args.lfw_pairs_path,
-                                           transform=test_transform),  batch_size=args.test_batch_size, shuffle=False, **kwargs)
+                                        transform=test_transform),  batch_size=args.test_batch_size, shuffle=False, **kwargs)
     # test_dataset = FIWTestDataset(img_path=args.fiw_img_path, pairs_path=args.fiw_test_list_path,
     #                               transform=test_transform)
     # test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
@@ -242,8 +243,8 @@ def main():
     if args.resume:
         if os.path.isfile(args.resume):
             print("=> loading checkpoint '{}'".format(args.resume))
-            checkpoint = torch.load(args.resume)
-            args.start_epoch = checkpoint['iterno']
+            checkpoint = torch.load(args.resume, map_location=torch.device('cpu'))
+            # args.start_epoch = checkpoint['iterno']
             genmodel.load_state_dict(checkpoint['state_dict1'])
             basemodel.load_state_dict(checkpoint['state_dict2'])
             reg_model.load_state_dict(checkpoint['state_dict3'])
@@ -274,7 +275,7 @@ def main():
         train(args, basemodel, idreg_model, genmodel, reg_model, device, train_loader, optimizer, criterion2,
               criterion1, iterno)
 
-        if iterno > 0 and iterno % 1000 == 0:
+        if iterno > 0 and iterno % 30  == 0:
             # 每100轮训练进行一次测试
             testacc = ttest(test_loader, basemodel, genmodel, reg_model, iterno, device, args)
             f = open('LFW_performance.txt', 'a')

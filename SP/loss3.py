@@ -33,29 +33,33 @@ def train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, 
 
         A_list, B_list, org_kernel_1, org_kernel_2 = compute_contrastive_features(data_1, data_2, basemodel, genmodel,
                                                                                   device)
-        reg_1 = reg_model(A_list)
-        reg_2 = reg_model(B_list)
-        SAB = (reg_1 + reg_2) / 2.0
-        loss1 = criterion1(SAB, target)
+        # reg_1 = reg_model(A_list)
+        # reg_2 = reg_model(B_list)
+        # SAB = (reg_1 + reg_2) / 2.0
+        # loss1 = criterion1(SAB, target)
 
         reg_3 = reg_model_kinship(A_list)
         reg_4 = reg_model_kinship(B_list)
         PAB = (reg_3 + reg_4) / 2.0
         loss3 = criterion1(PAB, target)
 
-        hk1 = idreg_model(org_kernel_1)
-        hk2 = idreg_model(org_kernel_2)
+        # hk1 = idreg_model(org_kernel_1)
+        # hk2 = idreg_model(org_kernel_2)
+        #
+        # loss2 = 0.5 * (criterion(hk1, c1) + criterion(hk2, c2))
+        # loss = loss2 + loss1 + loss3
 
-        loss2 = 0.5 * (criterion(hk1, c1) + criterion(hk2, c2))
-        loss = loss2 + loss1 + loss3
-
+        loss = loss3
         loss.backward()
 
         optimizer.step()
 
-        print('Train iter: {} [{}/{} ({:.0f}%)]\tLoss: {:.4f} {:.4f} {:.4f} {:.4f}'.format(
+        print('Train iter: {} [{}/{} ({:.0f}%)]\tLoss: {:.4f}'.format(
             iteration, batch_idx * len(data_1), len(train_loader.dataset), 100. * batch_idx / len(train_loader),
-            loss.item(), loss1.item(), loss2.item(), loss3.item()))
+            loss.item()))
+        # print('Train iter: {} [{}/{} ({:.0f}%)]\tLoss: {:.4f} {:.4f} {:.4f} {:.4f}'.format(
+        #     iteration, batch_idx * len(data_1), len(train_loader.dataset), 100. * batch_idx / len(train_loader),
+        #     loss.item(), loss1.item(), loss2.item(), loss3.item()))
 
 # 测试函数
 def ttest(test_loader, basemodel, genmodel, reg_model, epoch, device, args):
@@ -102,6 +106,8 @@ def save_checkpoint(state, filename):
 # 输出通过特定生成的kernel而卷积产生的人脸数据和处理过的kernel
 # 输出作为regressor和identity regressor的输入
 def compute_contrastive_features(data_1, data_2, basemodel, genmodel, device):
+    basemodel.eval()
+    genmodel.eval()
     data_1, data_2 = (data_1).to(device), (data_2).to(device)
 
     data_1 = basemodel(data_1)
@@ -218,6 +224,7 @@ def main():
     if args.resume:
         if os.path.isfile(args.resume):
             print("=> loading checkpoint '{}'".format(args.resume))
+            # checkpoint = torch.load(args.resume, map_location=torch.device('cpu'))
             checkpoint = torch.load(args.resume)
             # args.start_epoch = checkpoint['iterno']
             genmodel.load_state_dict(checkpoint['state_dict1'])
