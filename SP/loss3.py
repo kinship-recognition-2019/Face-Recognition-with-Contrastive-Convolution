@@ -22,13 +22,17 @@ from tqdm import tqdm
 # 训练函数
 def train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, device, train_loader, optimizer, criterion, criterion1, iteration):
     reg_model_kinship.train()
+    basemodel.eval()
+    genmodel.eval()
+    reg_model.eval()
+    idreg_model.eval()
 
     for batch_idx, (data_1, data_2, c1, c2, target) in enumerate(train_loader):
         data_1, data_2, c1, c2, target = (data_1).to(device), (data_2).to(device), torch.from_numpy(np.asarray(c1)).to(
             device), torch.from_numpy(np.asarray(c2)).to(device), torch.from_numpy(np.asarray(target)).to(device)
-
+        # print(data_1.shape)
         target = target.float().unsqueeze(1)
-
+        # print(target)
         optimizer.zero_grad()
 
         A_list, B_list, org_kernel_1, org_kernel_2 = compute_contrastive_features(data_1, data_2, basemodel, genmodel,
@@ -48,7 +52,7 @@ def train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, 
         #
         # loss2 = 0.5 * (criterion(hk1, c1) + criterion(hk2, c2))
         # loss = loss2 + loss1 + loss3
-
+        # print(reg_model_kinship.state_dict())
         loss = loss3
         loss.backward()
 
@@ -106,8 +110,6 @@ def save_checkpoint(state, filename):
 # 输出通过特定生成的kernel而卷积产生的人脸数据和处理过的kernel
 # 输出作为regressor和identity regressor的输入
 def compute_contrastive_features(data_1, data_2, basemodel, genmodel, device):
-    basemodel.eval()
-    genmodel.eval()
     data_1, data_2 = (data_1).to(device), (data_2).to(device)
 
     data_1 = basemodel(data_1)
@@ -248,7 +250,7 @@ def main():
         adjust_learning_rate(optimizer, iterno)
         train_dataset = FIWTrainDataset(img_path=args.fiw_img_path, list_path=args.fiw_train_list_path,
                                         noofpairs=args.batch_size, transform=transform)
-        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
+        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=False, **kwargs)
 
         # 训练
         train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, device, train_loader,

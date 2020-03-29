@@ -1,4 +1,5 @@
 from PIL import Image
+import torch
 from torch.utils.data import Dataset
 import os
 import numpy as np
@@ -43,9 +44,11 @@ class FIWTrainDataset(Dataset):
 
             imageA, imageB, c1, c2, target= self.image_list[i]
             pairsList.append([imageA, imageB, c1, c2, target])
+            # print(target)
 
             imageA, imageB, c1, c2, target = self.image_list[j]
             pairsList.append([imageA, imageB, c1, c2, target])
+            # print(target)
 
         return pairsList
 
