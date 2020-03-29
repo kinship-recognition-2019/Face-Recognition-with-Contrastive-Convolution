@@ -18,7 +18,8 @@ from tqdm import tqdm
 
 
 # 运行main，用于原论文 - 两张人脸是否属于同一个人问题
-
+from SP.FIW_traindataset import FIWTrainDataset
+from SP.FIW_testdataset import FIWTestDataset
 
 # 训练函数
 def train(args, basemodel, idreg_model, genmodel, reg_model, device, train_loader, optimizer, criterion, criterion1, iteration):
@@ -196,11 +197,11 @@ def main():
         transforms.Resize(128),
         transforms.ToTensor()])
 
-    test_loader = torch.utils.data.DataLoader(LFWDataset(dir=args.lfw_dir,pairs_path=args.lfw_pairs_path,
-                                        transform=test_transform),  batch_size=args.test_batch_size, shuffle=False, **kwargs)
-    # test_dataset = FIWTestDataset(img_path=args.fiw_img_path, pairs_path=args.fiw_test_list_path,
-    #                               transform=test_transform)
-    # test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
+    # test_loader = torch.utils.data.DataLoader(LFWDataset(dir=args.lfw_dir,pairs_path=args.lfw_pairs_path,
+    #                                    transform=test_transform),  batch_size=args.test_batch_size, shuffle=False, **kwargs)
+    test_dataset = FIWTestDataset(img_path=args.fiw_img_path, pairs_path=args.fiw_test_list_path,
+                                   transform=test_transform)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
 
     # 训练集的transform函数
     transform = transforms.Compose([
@@ -261,21 +262,21 @@ def main():
 
     print('Device being used is :' + str(device))
 
-    for iterno in range(args.start_epoch + 1, args.iters + 1):
+    for iterno in range(args.start_epoch, args.iters + 1):
         adjust_learning_rate(optimizer, iterno)
         # 训练集处理，采用CASIA-WebFace
-        traindataset = CasiaFaceDataset(noofpairs=args.batch_size, transform=transform, is_train=True)
-        train_loader = torch.utils.data.DataLoader(traindataset, batch_size=args.batch_size, shuffle=True, **kwargs)
+        # traindataset = CasiaFaceDataset(noofpairs=args.batch_size, transform=transform, is_train=True)
+        # train_loader = torch.utils.data.DataLoader(traindataset, batch_size=args.batch_size, shuffle=True, **kwargs)
 
-        # train_dataset = FIWTrainDataset(img_path=args.fiw_img_path, list_path=args.fiw_train_list_path,
-        #                                 noofpairs=args.batch_size, transform=transform)
-        # train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
+        train_dataset = FIWTrainDataset(img_path=args.fiw_img_path, list_path=args.fiw_train_list_path,
+                                         noofpairs=args.batch_size, transform=transform)
+        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
 
         # 训练
         train(args, basemodel, idreg_model, genmodel, reg_model, device, train_loader, optimizer, criterion2,
               criterion1, iterno)
 
-        if iterno > 0 and iterno % 30  == 0:
+        if iterno % 30  == 0:
             # 每100轮训练进行一次测试
             testacc = ttest(test_loader, basemodel, genmodel, reg_model, iterno, device, args)
             f = open('LFW_performance.txt', 'a')

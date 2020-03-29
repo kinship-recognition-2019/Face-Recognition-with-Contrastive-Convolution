@@ -233,6 +233,7 @@ def main():
             basemodel.load_state_dict(checkpoint['state_dict2'])
             reg_model.load_state_dict(checkpoint['state_dict3'])
             idreg_model.load_state_dict(checkpoint['state_dict4'])
+            reg_model_kinship.load_state_dict(checkpoint['state_dict3'])
             # optimizer.load_state_dict(checkpoint['optimizer'])
             # print("=> loaded checkpoint '{}' (epoch {})"
             #       .format(args.resume, checkpoint['iterno']))
