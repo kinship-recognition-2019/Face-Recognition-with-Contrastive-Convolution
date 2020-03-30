@@ -13,6 +13,7 @@ from SP.base_model import Contrastive_4Layers
 from SP.eval_metrics import evaluate
 from SP.identity_regressor import Identity_Regressor
 from SP.FIW_traindataset import FIWTrainDataset
+from SP.reg_kinship import RegressorKinship
 from SP.FIW_testdataset import FIWTestDataset
 from tqdm import tqdm
 
@@ -206,7 +207,7 @@ def main():
 
     test_dataset = FIWTestDataset(img_path=args.fiw_img_path, pairs_path=args.fiw_test_list_path,
                                   transform=test_transform)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
     # 训练集的transform函数
     transform = transforms.Compose([
@@ -217,7 +218,7 @@ def main():
     basemodel = Contrastive_4Layers(num_classes=args.num_classes).to(device)
     genmodel = GenModel(512).to(device)
     reg_model = Regressor(686).to(device)
-    reg_model_kinship = Regressor(686).to(device)
+    reg_model_kinship = RegressorKinship(686).to(device)
     idreg_model = Identity_Regressor(14 * 512 * 3 * 3, args.num_classes).to(device)
 
     params = list(reg_model_kinship.parameters())
@@ -233,7 +234,7 @@ def main():
             basemodel.load_state_dict(checkpoint['state_dict2'])
             reg_model.load_state_dict(checkpoint['state_dict3'])
             idreg_model.load_state_dict(checkpoint['state_dict4'])
-            reg_model_kinship.load_state_dict(checkpoint['state_dict3'])
+            # reg_model_kinship.load_state_dict(checkpoint['state_dict3'])
             # optimizer.load_state_dict(checkpoint['optimizer'])
             # print("=> loaded checkpoint '{}' (epoch {})"
             #       .format(args.resume, checkpoint['iterno']))

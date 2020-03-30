@@ -42,7 +42,7 @@ class FIWTrainDataset(Dataset):
             while self.image_list[j][4] != 0:
                 j = np.random.choice(CatList)
 
-            imageA, imageB, c1, c2, target= self.image_list[i]
+            imageA, imageB, c1, c2, target = self.image_list[i]
             pairsList.append([imageA, imageB, c1, c2, target])
             # print(target)
 

@@ -33,7 +33,7 @@ def train(args, basemodel, idreg_model, genmodel, reg_model, device, train_loade
             device), torch.from_numpy(np.asarray(c2)).to(device), torch.from_numpy(np.asarray(target)).to(device)
         # print(data_1.shape)
         target = target.float().unsqueeze(1)
-        # print(target)
+        print(target)
         optimizer.zero_grad()
 
         A_list, B_list, org_kernel_1, org_kernel_2 = compute_contrastive_features(data_1, data_2, basemodel, genmodel,
