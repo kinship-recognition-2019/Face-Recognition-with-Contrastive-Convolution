@@ -273,16 +273,16 @@ def main():
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
 
         # 训练
-        train(args, basemodel, idreg_model, genmodel, reg_model, device, train_loader, optimizer, criterion2,
-              criterion1, iterno)
+        # train(args, basemodel, idreg_model, genmodel, reg_model, device, train_loader, optimizer, criterion2,
+        #       criterion1, iterno)
 
-        if iterno % 30  == 0:
+        # if iterno % 30  == 0:
             # 每100轮训练进行一次测试
-            testacc = ttest(test_loader, basemodel, genmodel, reg_model, iterno, device, args)
-            f = open('LFW_performance.txt', 'a')
-            f.write('\n' + str(iterno) + ': ' + str(testacc * 100))
-            f.close()
-            print('Test accuracy: {:.4f}'.format(testacc * 100))
+        testacc = ttest(test_loader, basemodel, genmodel, reg_model, iterno, device, args)
+        f = open('LFW_performance.txt', 'a')
+        f.write('\n' + str(iterno) + ': ' + str(testacc * 100))
+        f.close()
+        print('Test accuracy: {:.4f}'.format(testacc * 100))
 
         # 每一万轮保存一次断点
         if iterno % 10000 == 0:

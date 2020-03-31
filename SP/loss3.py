@@ -1,5 +1,7 @@
 from __future__ import print_function
 import argparse
+import torchvision
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -14,10 +16,19 @@ from SP.eval_metrics import evaluate
 from SP.identity_regressor import Identity_Regressor
 from SP.FIW_traindataset import FIWTrainDataset
 from SP.reg_kinship import RegressorKinship
+import matplotlib.pyplot as plt
 from SP.FIW_testdataset import FIWTestDataset
 from tqdm import tqdm
 
 # 运行main，用于原论文 - 两张人脸是否属于同一个人问题
+
+
+def imshow(img):
+    npimg = img.numpy()
+    plt.axis("off")
+
+    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+    plt.show()
 
 
 # 训练函数
@@ -31,9 +42,14 @@ def train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, 
     for batch_idx, (data_1, data_2, c1, c2, target) in enumerate(train_loader):
         data_1, data_2, c1, c2, target = (data_1).to(device), (data_2).to(device), torch.from_numpy(np.asarray(c1)).to(
             device), torch.from_numpy(np.asarray(c2)).to(device), torch.from_numpy(np.asarray(target)).to(device)
-        # print(data_1.shape)
+        concatenated = torch.cat((data_1, data_2), 0)
+        # imshow(torchvision.utils.make_grid(data_1))
+        # imshow(torchvision.utils.make_grid(data_2))
+
         target = target.float().unsqueeze(1)
-        # print(target)
+        # print("target", target)
+        # print("label1", c1)
+        # print("label2", c2)
         optimizer.zero_grad()
 
         A_list, B_list, org_kernel_1, org_kernel_2 = compute_contrastive_features(data_1, data_2, basemodel, genmodel,
@@ -78,6 +94,9 @@ def ttest(test_loader, basemodel, genmodel, reg_model, epoch, device, args):
     with torch.no_grad():
         for batch_idx, (data_a, data_b, label) in pbar:
             data_a, data_b = data_a.to(device), data_b.to(device)
+            concatenated = torch.cat((data_a, data_b), 0)
+            # imshow(torchvision.utils.make_grid(data_a))
+            # imshow(torchvision.utils.make_grid(data_b))
 
             if args.compute_contrastive:
                 out1_a, out1_b, k1, k2 = compute_contrastive_features(data_a, data_b, basemodel, genmodel, device)
@@ -207,7 +226,7 @@ def main():
 
     test_dataset = FIWTestDataset(img_path=args.fiw_img_path, pairs_path=args.fiw_test_list_path,
                                   transform=test_transform)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size, shuffle=True, **kwargs)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
 
     # 训练集的transform函数
     transform = transforms.Compose([
@@ -218,7 +237,7 @@ def main():
     basemodel = Contrastive_4Layers(num_classes=args.num_classes).to(device)
     genmodel = GenModel(512).to(device)
     reg_model = Regressor(686).to(device)
-    reg_model_kinship = RegressorKinship(686).to(device)
+    reg_model_kinship = Regressor(686).to(device)
     idreg_model = Identity_Regressor(14 * 512 * 3 * 3, args.num_classes).to(device)
 
     params = list(reg_model_kinship.parameters())
@@ -250,9 +269,9 @@ def main():
 
     for iterno in range(args.start_epoch + 1, args.iters + 1):
         adjust_learning_rate(optimizer, iterno)
-        train_dataset = FIWTrainDataset(img_path=args.fiw_img_path, list_path=args.fiw_train_list_path,
+        train_dataset = FIWTrainDataset(img_path=args.fiw_img_path, list_path=args.fiw_test_list_path,
                                         noofpairs=args.batch_size, transform=transform)
-        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=False, **kwargs)
+        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
 
         # 训练
         train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, device, train_loader,
