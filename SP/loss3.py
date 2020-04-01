@@ -212,9 +212,9 @@ def main():
     #                    metavar='N', help='number of classes (default: 10574)')
     parser.add_argument('--num_classes', default=1000, type=int,
                         metavar='N', help='number of classes (default: 10574)')
-    parser.add_argument('--fiw-train-list-path', type=str, default='../dataset/ss_train.csv',
+    parser.add_argument('--fiw-train-list-path', type=str, default='../dataset/ss_train2.csv',
                         help='path to fiw train list')
-    parser.add_argument('--fiw-test-list-path', type=str, default='../dataset/ss_test.csv',
+    parser.add_argument('--fiw-test-list-path', type=str, default='../dataset/ss_test2.csv',
                         help='path to fiw test list')
     parser.add_argument('--fiw-img-path', type=str, default='../dataset/FIDs_NEW', help='path to fiw')
     args = parser.parse_args()
@@ -283,7 +283,7 @@ def main():
         train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, device, train_loader,
               optimizer, criterion2, criterion1, iterno)
 
-        if iterno % 30 == 0:
+        if iterno % 100 == 0:
             # 每100轮训练进行一次测试
             testacc = ttest(test_loader, basemodel, genmodel, reg_model, iterno, device, args)
             f = open('LFW_performance.txt', 'a')
