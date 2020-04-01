@@ -33,11 +33,15 @@ def imshow(img):
 
 # 训练函数
 def train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, device, train_loader, optimizer, criterion, criterion1, iteration):
-    reg_model_kinship.train()
-    basemodel.eval()
-    genmodel.eval()
-    reg_model.eval()
-    idreg_model.eval()
+    # reg_model_kinship.train()
+    # basemodel.eval()
+    # genmodel.eval()
+    # reg_model.eval()
+    # idreg_model.eval()
+    basemodel.train()
+    genmodel.train()
+    reg_model.train()
+    idreg_model.train()
 
     for batch_idx, (data_1, data_2, c1, c2, target) in enumerate(train_loader):
         data_1, data_2, c1, c2, target = (data_1).to(device), (data_2).to(device), torch.from_numpy(np.asarray(c1)).to(
@@ -54,33 +58,33 @@ def train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, 
 
         A_list, B_list, org_kernel_1, org_kernel_2 = compute_contrastive_features(data_1, data_2, basemodel, genmodel,
                                                                                   device)
-        # reg_1 = reg_model(A_list)
-        # reg_2 = reg_model(B_list)
-        # SAB = (reg_1 + reg_2) / 2.0
-        # loss1 = criterion1(SAB, target)
+        reg_1 = reg_model(A_list)
+        reg_2 = reg_model(B_list)
+        SAB = (reg_1 + reg_2) / 2.0
+        loss1 = criterion1(SAB, target)
 
-        reg_3 = reg_model_kinship(A_list)
-        reg_4 = reg_model_kinship(B_list)
-        PAB = (reg_3 + reg_4) / 2.0
-        loss3 = criterion1(PAB, target)
+        # reg_3 = reg_model_kinship(A_list)
+        # reg_4 = reg_model_kinship(B_list)
+        # PAB = (reg_3 + reg_4) / 2.0
+        # loss3 = criterion1(PAB, target)
 
-        # hk1 = idreg_model(org_kernel_1)
-        # hk2 = idreg_model(org_kernel_2)
-        #
-        # loss2 = 0.5 * (criterion(hk1, c1) + criterion(hk2, c2))
+        hk1 = idreg_model(org_kernel_1)
+        hk2 = idreg_model(org_kernel_2)
+
+        loss2 = 0.5 * (criterion(hk1, c1) + criterion(hk2, c2))
         # loss = loss2 + loss1 + loss3
         # print(reg_model_kinship.state_dict())
-        loss = loss3
+        loss = loss1 + loss2
         loss.backward()
 
         optimizer.step()
 
-        print('Train iter: {} [{}/{} ({:.0f}%)]\tLoss: {:.4f}'.format(
-            iteration, batch_idx * len(data_1), len(train_loader.dataset), 100. * batch_idx / len(train_loader),
-            loss.item()))
-        # print('Train iter: {} [{}/{} ({:.0f}%)]\tLoss: {:.4f} {:.4f} {:.4f} {:.4f}'.format(
+        # print('Train iter: {} [{}/{} ({:.0f}%)]\tLoss: {:.4f}'.format(
         #     iteration, batch_idx * len(data_1), len(train_loader.dataset), 100. * batch_idx / len(train_loader),
-        #     loss.item(), loss1.item(), loss2.item(), loss3.item()))
+        #     loss.item()))
+        print('Train iter: {} [{}/{} ({:.0f}%)]\tLoss: {:.4f} {:.4f} {:.4f}'.format(
+            iteration, batch_idx * len(data_1), len(train_loader.dataset), 100. * batch_idx / len(train_loader),
+            loss.item(), loss1.item(), loss2.item()))
 
 # 测试函数
 def ttest(test_loader, basemodel, genmodel, reg_model, epoch, device, args):
@@ -94,7 +98,7 @@ def ttest(test_loader, basemodel, genmodel, reg_model, epoch, device, args):
     with torch.no_grad():
         for batch_idx, (data_a, data_b, label) in pbar:
             data_a, data_b = data_a.to(device), data_b.to(device)
-            concatenated = torch.cat((data_a, data_b), 0)
+            # concatenated = torch.cat((data_a, data_b), 0)
             # imshow(torchvision.utils.make_grid(data_a))
             # imshow(torchvision.utils.make_grid(data_b))
 
@@ -177,7 +181,7 @@ def adjust_learning_rate(optimizer, epoch):
 def main():
     # 参数
     parser = argparse.ArgumentParser(description='PyTorch Contrastive Convolution for FR')
-    parser.add_argument('--batch_size', type=int, default=64, metavar='N', help='input batch size for training (default: 64)')
+    parser.add_argument('--batch_size', type=int, default=128, metavar='N', help='input batch size for training (default: 64)')
     parser.add_argument('--test_batch_size', type=int, default=128, metavar='BST', help='input batch size for testing (default: 1000)')
     parser.add_argument('--iters', type=int, default=200000, metavar='N', help='number of iterations to train (default: 10)')
     parser.add_argument('--start-epoch', default=0, type=int, metavar='N', help='manual epoch number (useful on restarts)')
@@ -188,7 +192,9 @@ def main():
     parser.add_argument('--log-interval', type=int, default=100, metavar='N', help='how many batches to wait before logging training status')
     parser.add_argument('--pretrained', default=False, type=bool, metavar='N', help='use pretrained ligthcnn model:True / False no pretrainedmodel )')
     parser.add_argument('--save_path', default='', type=str, metavar='PATH', help='path to save checkpoint (default: none)')
-    parser.add_argument('--resume', default='model200000_checkpoint.pth.tar', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
+    # parser.add_argument('--resume', default='model200000_checkpoint.pth.tar', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
+    parser.add_argument('--resume', default='', type=str, metavar='PATH',
+                        help='path to latest checkpoint (default: none)')
     parser.add_argument('--compute_contrastive', default=True, type=bool,
                         metavar='N', help='use contrastive featurs or base mode features: True / False )')
     parser.add_argument('--log_interval', type=int, default=10,
@@ -202,13 +208,13 @@ def main():
                         help='path to pairs file')
     parser.add_argument('--root_path', default='../dataset/CASIA-WebFace', type=str, metavar='PATH',
                         help='path to root path of images (default: none)')
-    parser.add_argument('--num_classes', default=10574, type=int,
-                       metavar='N', help='number of classes (default: 10574)')
-    # parser.add_argument('--num_classes', default=1000, type=int,
-    #                     metavar='N', help='number of classes (default: 10574)')
-    parser.add_argument('--fiw-train-list-path', type=str, default='../dataset/fs.csv',
+    # parser.add_argument('--num_classes', default=10574, type=int,
+    #                    metavar='N', help='number of classes (default: 10574)')
+    parser.add_argument('--num_classes', default=1000, type=int,
+                        metavar='N', help='number of classes (default: 10574)')
+    parser.add_argument('--fiw-train-list-path', type=str, default='../dataset/ss_train.csv',
                         help='path to fiw train list')
-    parser.add_argument('--fiw-test-list-path', type=str, default='../dataset/fs_test.csv',
+    parser.add_argument('--fiw-test-list-path', type=str, default='../dataset/ss_test.csv',
                         help='path to fiw test list')
     parser.add_argument('--fiw-img-path', type=str, default='../dataset/FIDs_NEW', help='path to fiw')
     args = parser.parse_args()
@@ -240,7 +246,7 @@ def main():
     reg_model_kinship = Regressor(686).to(device)
     idreg_model = Identity_Regressor(14 * 512 * 3 * 3, args.num_classes).to(device)
 
-    params = list(reg_model_kinship.parameters())
+    params = list(basemodel.parameters()) + list(genmodel.parameters()) + list(reg_model.parameters()) + list(idreg_model.parameters())
     optimizer = optim.SGD(params, lr=args.lr, momentum=args.momentum)
 
     if args.resume:
@@ -269,7 +275,7 @@ def main():
 
     for iterno in range(args.start_epoch + 1, args.iters + 1):
         adjust_learning_rate(optimizer, iterno)
-        train_dataset = FIWTrainDataset(img_path=args.fiw_img_path, list_path=args.fiw_test_list_path,
+        train_dataset = FIWTrainDataset(img_path=args.fiw_img_path, list_path=args.fiw_train_list_path,
                                         noofpairs=args.batch_size, transform=transform)
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
 
@@ -277,9 +283,9 @@ def main():
         train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, device, train_loader,
               optimizer, criterion2, criterion1, iterno)
 
-        if iterno % 100 == 0:
+        if iterno % 30 == 0:
             # 每100轮训练进行一次测试
-            testacc = ttest(test_loader, basemodel, genmodel, reg_model_kinship, iterno, device, args)
+            testacc = ttest(test_loader, basemodel, genmodel, reg_model, iterno, device, args)
             f = open('LFW_performance.txt', 'a')
             f.write('\n' + str(iterno) + ': ' + str(testacc * 100))
             f.close()

@@ -33,7 +33,7 @@ def train(args, basemodel, idreg_model, genmodel, reg_model, device, train_loade
             device), torch.from_numpy(np.asarray(c2)).to(device), torch.from_numpy(np.asarray(target)).to(device)
         # print(data_1.shape)
         target = target.float().unsqueeze(1)
-        print(target)
+        # print(target)
         optimizer.zero_grad()
 
         A_list, B_list, org_kernel_1, org_kernel_2 = compute_contrastive_features(data_1, data_2, basemodel, genmodel,
@@ -161,7 +161,7 @@ def main():
     parser.add_argument('--log-interval', type=int, default=100, metavar='N', help='how many batches to wait before logging training status')
     parser.add_argument('--pretrained', default=False, type=bool, metavar='N', help='use pretrained ligthcnn model:True / False no pretrainedmodel )')
     parser.add_argument('--save_path', default='', type=str, metavar='PATH', help='path to save checkpoint (default: none)')
-    parser.add_argument('--resume', default='model200000_checkpoint.pth.tar', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
+    parser.add_argument('--resume', default='', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
     parser.add_argument('--compute_contrastive', default=True, type=bool,
                         metavar='N', help='use contrastive featurs or base mode features: True / False )')
     parser.add_argument('--log_interval', type=int, default=10,
@@ -262,27 +262,27 @@ def main():
 
     print('Device being used is :' + str(device))
 
-    for iterno in range(args.start_epoch, args.iters + 1):
+    for iterno in range(args.start_epoch + 1, args.iters + 1):
         adjust_learning_rate(optimizer, iterno)
         # 训练集处理，采用CASIA-WebFace
-        # traindataset = CasiaFaceDataset(noofpairs=args.batch_size, transform=transform, is_train=True)
-        # train_loader = torch.utils.data.DataLoader(traindataset, batch_size=args.batch_size, shuffle=True, **kwargs)
+        traindataset = CasiaFaceDataset(noofpairs=args.batch_size, transform=transform, is_train=True)
+        train_loader = torch.utils.data.DataLoader(traindataset, batch_size=args.batch_size, shuffle=True, **kwargs)
 
-        train_dataset = FIWTrainDataset(img_path=args.fiw_img_path, list_path=args.fiw_train_list_path,
-                                         noofpairs=args.batch_size, transform=transform)
-        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
+        # train_dataset = FIWTrainDataset(img_path=args.fiw_img_path, list_path=args.fiw_train_list_path,
+        #                                  noofpairs=args.batch_size, transform=transform)
+        # train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
 
         # 训练
-        # train(args, basemodel, idreg_model, genmodel, reg_model, device, train_loader, optimizer, criterion2,
-        #       criterion1, iterno)
+        train(args, basemodel, idreg_model, genmodel, reg_model, device, train_loader, optimizer, criterion2,
+              criterion1, iterno)
 
-        # if iterno % 30  == 0:
+        if iterno % 30  == 0:
             # 每100轮训练进行一次测试
-        testacc = ttest(test_loader, basemodel, genmodel, reg_model, iterno, device, args)
-        f = open('LFW_performance.txt', 'a')
-        f.write('\n' + str(iterno) + ': ' + str(testacc * 100))
-        f.close()
-        print('Test accuracy: {:.4f}'.format(testacc * 100))
+            testacc = ttest(test_loader, basemodel, genmodel, reg_model, iterno, device, args)
+            f = open('LFW_performance.txt', 'a')
+            f.write('\n' + str(iterno) + ': ' + str(testacc * 100))
+            f.close()
+            print('Test accuracy: {:.4f}'.format(testacc * 100))
 
         # 每一万轮保存一次断点
         if iterno % 10000 == 0:
