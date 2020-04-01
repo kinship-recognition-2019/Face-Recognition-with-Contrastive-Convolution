@@ -212,9 +212,9 @@ def main():
     #                    metavar='N', help='number of classes (default: 10574)')
     parser.add_argument('--num_classes', default=1000, type=int,
                         metavar='N', help='number of classes (default: 10574)')
-    parser.add_argument('--fiw-train-list-path', type=str, default='../dataset/ss_train2.csv',
+    parser.add_argument('--fiw-train-list-path', type=str, default='../dataset/fs_train.csv',
                         help='path to fiw train list')
-    parser.add_argument('--fiw-test-list-path', type=str, default='../dataset/ss_test2.csv',
+    parser.add_argument('--fiw-test-list-path', type=str, default='../dataset/fs_test.csv',
                         help='path to fiw test list')
     parser.add_argument('--fiw-img-path', type=str, default='../dataset/FIDs_NEW', help='path to fiw')
     args = parser.parse_args()

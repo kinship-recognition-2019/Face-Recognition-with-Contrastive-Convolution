@@ -41,7 +41,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch-size', type=int, default=64, metavar='N', help='input batch size for training')
     parser.add_argument('--test-batch-size', type=int, default=128, metavar='N', help='input batch size for training')
     parser.add_argument('--fiw-img-path', type=str, default='./dataset/FIDs_NEW', help='path to fiw')
-    parser.add_argument('--fiw-train-list-path', type=str, default='./dataset/fs.csv', help='path to fiw train list')
+    parser.add_argument('--fiw-train-list-path', type=str, default='./dataset/fs_train.csv', help='path to fiw train list')
     parser.add_argument('--fiw-test-list-path', type=str, default='./dataset/fs_test.csv', help='path to fiw test list')
     parser.add_argument('--iters', type=int, default=200000, metavar='N', help='number of iterations to train')
     args = parser.parse_args()
