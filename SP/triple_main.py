@@ -59,7 +59,7 @@ def train(args, basemodel, reg_model,idreg_model, genmodel, device, train_loader
         reg_C = reg_model(C_list)
         SAC = (reg_Ac + reg_C) / 2.0
         #print("SAC",SAC.sum())
-        loss1 = criterion1(SAB, SAC)
+        loss1 = criterion1(SAC, SAB)
 
         hk1 = idreg_model(org_kernel_1)
         hk2 = idreg_model(org_kernel_2)
