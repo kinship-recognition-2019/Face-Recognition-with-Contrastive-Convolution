@@ -61,14 +61,15 @@ def train(args, basemodel, reg_model,idreg_model, genmodel, device, train_loader
         #print("SAC",SAC.sum())
         loss1 = criterion1(SAC, SAB)
 
-        hk1 = idreg_model(org_kernel_1)
-        hk2 = idreg_model(org_kernel_2)
-        hk3 = idreg_model(org_kernel_3)
+        #hk1 = idreg_model(org_kernel_1)
+        #hk2 = idreg_model(org_kernel_2)
+        #hk3 = idreg_model(org_kernel_3)
 
-        loss2 =  (criterion(hk1, c1) + criterion(hk2, c2)+criterion(hk3, c3))/3
+        #loss2 =  (criterion(hk1, c1) + criterion(hk2, c2)+criterion(hk3, c3))/3
+        loss2 = criterion2(org_kernel_1,org_kernel_2,org_kernel_3)
         # loss = loss2 + loss1 + loss3
         # print(reg_model_kinship.state_dict())
-        loss = loss1
+        #loss = loss1
         loss = loss1 + loss2
         loss.backward()
 
@@ -311,7 +312,8 @@ def main():
 
     # 损失函数
     criterion2 = nn.CrossEntropyLoss().to(device)
-    criterion1 = Triple_loss(0.5).to(device)
+    criterion1 = nn.TripletMarginLoss(margin=0.5, p=2).to(device)
+    #criterion1 = Triple_loss(0.5).to(device)
 
     print('Device being used is :' + str(device))
 
