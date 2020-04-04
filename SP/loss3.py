@@ -15,6 +15,7 @@ from SP.base_model import Contrastive_4Layers
 from SP.eval_metrics import evaluate
 from SP.identity_regressor import Identity_Regressor
 from SP.FIW_traindataset import FIWTrainDataset
+from SP.reg_kinship import RegressorKinship
 import matplotlib.pyplot as plt
 from SP.FIW_testdataset import FIWTestDataset
 from tqdm import tqdm
@@ -180,7 +181,7 @@ def adjust_learning_rate(optimizer, epoch):
 def main():
     # 参数
     parser = argparse.ArgumentParser(description='PyTorch Contrastive Convolution for FR')
-    parser.add_argument('--batch_size', type=int, default=64, metavar='N', help='input batch size for training (default: 64)')
+    parser.add_argument('--batch_size', type=int, default=128, metavar='N', help='input batch size for training (default: 64)')
     parser.add_argument('--test_batch_size', type=int, default=128, metavar='BST', help='input batch size for testing (default: 1000)')
     parser.add_argument('--iters', type=int, default=200000, metavar='N', help='number of iterations to train (default: 10)')
     parser.add_argument('--start-epoch', default=0, type=int, metavar='N', help='manual epoch number (useful on restarts)')
@@ -211,9 +212,9 @@ def main():
     #                    metavar='N', help='number of classes (default: 10574)')
     parser.add_argument('--num_classes', default=1000, type=int,
                         metavar='N', help='number of classes (default: 10574)')
-    parser.add_argument('--fiw-train-list-path', type=str, default='../dataset/FIW_List/father-son/fs_train.csv',
+    parser.add_argument('--fiw-train-list-path', type=str, default='../dataset/fs_train.csv',
                         help='path to fiw train list')
-    parser.add_argument('--fiw-test-list-path', type=str, default='../dataset/FIW_List/father-son/fs_test.csv',
+    parser.add_argument('--fiw-test-list-path', type=str, default='../dataset/fs_test.csv',
                         help='path to fiw test list')
     parser.add_argument('--fiw-img-path', type=str, default='../dataset/FIDs_NEW', help='path to fiw')
     args = parser.parse_args()
@@ -282,7 +283,7 @@ def main():
         train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, device, train_loader,
               optimizer, criterion2, criterion1, iterno)
 
-        if iterno % 1 == 0:
+        if iterno % 100 == 0:
             # 每100轮训练进行一次测试
             testacc = ttest(test_loader, basemodel, genmodel, reg_model, iterno, device, args)
             f = open('LFW_performance.txt', 'a')
