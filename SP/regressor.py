@@ -7,19 +7,19 @@ class Regressor(nn.Module):
         super(Regressor, self).__init__()
         self.fc1 = nn.Linear(n, 1)
         self.relu = nn.ReLU()
-        self.nan_to_zero = Nan_to_zero()
+        # self.nan_to_zero = Nan_to_zero()
 
     def forward(self, x):
         x = self.fc1(x)
         x = torch.sigmoid(x)
-        x = self.nan_to_zero(x)
+        # x = self.nan_to_zero(x)
         return x
 
-class Nan_to_zero(nn.Module):
-   def __init__(self):
-       super(Nan_to_zero, self).__init__()
-
-   def forward(self, x):
-       zero = torch.full(x.size(),1e-30).to(torch.device("cuda"))
-       out = torch.where(torch.isnan(x), zero, x)
-       return out
+# class Nan_to_zero(nn.Module):
+#    def __init__(self):
+#        super(Nan_to_zero, self).__init__()
+#
+#    def forward(self, x):
+#        zero = torch.full(x.size(),1e-30).to(torch.device("cuda"))
+#        out = torch.where(torch.isnan(x), zero, x)
+#        return out
