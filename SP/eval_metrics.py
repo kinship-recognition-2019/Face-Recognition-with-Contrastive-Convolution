@@ -8,7 +8,7 @@ from sklearn.model_selection import KFold
 
 def evaluate(distances, labels, nrof_folds=10):
     # Calculate evaluation metrics
-    thresholds = np.arange(0, 1, 0.05)
+    thresholds = np.arange(0, 1, 0.1)
     #thresholds = np.array([0.5])
     # print(thresholds)
     #tpr, fpr, accuracy = calculate_roc(thresholds, distances,
