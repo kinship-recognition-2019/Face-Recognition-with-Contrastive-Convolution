@@ -2,7 +2,7 @@ from __future__ import print_function
 import argparse
 import torchvision
 
-from get_pairs_list import get_csv
+# from get_pairs_list import get_csv
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -19,11 +19,11 @@ import matplotlib.pyplot as plt
 from FIW_testdataset import FIWTestDataset
 from tqdm import tqdm
 from base_model import Contrastive_4Layers
-from densenet import densenet121
+# from densenet import densenet121
 from senet import seresnet50,seresnet34
-from inceptionv4 import inception_resnet_v2
+# from inceptionv4 import inception_resnet_v2
 from resnet import resnet34,resnet50
-from contrastive_cnn import Contrastive_14Layers
+# from contrastive_cnn import Contrastive_14Layers
 # 运行main，用于原论文 - 两张人脸是否属于同一个人问题
 
 
@@ -224,12 +224,12 @@ def main():
     parser.add_argument('--num_classes', default=1000, type=int,
                         metavar='N', help='number of classes (default: 10574)')
     parser.add_argument('--alpha',default=1.0,type=float,help="the weight of loss2")
-    parser.add_argument('--fiw-train-list-path', type=str, default='/media/zhang/新加卷/pycode/Contrastive-Convolution-new/dataset/FIW_List/father-daughter/fd_train.csv',
+    parser.add_argument('--fiw-train-list-path', type=str, default='../dataset/FIW_List/father-daughter/fd_train.csv',
                         help='path to fiw train list')
-    parser.add_argument('--fiw-test-list-path', type=str, default='/media/zhang/新加卷/pycode/Contrastive-Convolution-new/dataset/FIW_List/father-daughter/fd_test.csv',
+    parser.add_argument('--fiw-test-list-path', type=str, default='../dataset/FIW_List/father-daughter/fd_test.csv',
                         help='path to fiw test list')
-    parser.add_argument('--pairs_list_path',type=str,default="fd_train.csv",help='pairs list csv')
-    parser.add_argument('--fiw-img-path', type=str, default='/media/zhang/新加卷/pycode/Face-Recognition-with-Contrastive-Convolution-pytorch/dataset/FIDs_NEW', help='path to fiw')
+    # parser.add_argument('--pairs_list_path',type=str,default="fd_train.csv",help='pairs list csv')
+    parser.add_argument('--fiw-img-path', type=str, default='../dataset/FIDs_NEW', help='path to fiw')
     args = parser.parse_args()
 
     # cuda设置
@@ -306,7 +306,7 @@ def main():
 
     for iterno in range(args.start_epoch + 1, args.iters + 1):
         adjust_learning_rate(optimizer, iterno)
-        train_dataset = FIWTrainDataset(img_path=args.fiw_img_path, list_path=args.pairs_list_path,
+        train_dataset = FIWTrainDataset(img_path=args.fiw_img_path, list_path=args.fiw_train_list_path,
                                         noofpairs=1000*args.batch_size, transform=transform)
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
 
