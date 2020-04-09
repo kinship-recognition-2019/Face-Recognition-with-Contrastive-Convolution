@@ -8,7 +8,7 @@ def get_neg(fam1,fiwpath):
     famlist=os.listdir(fiwpath)
     fam3=random.choice(famlist)
     fampath=fiwpath+"/"+fam3
-    while fam3 ==fam1 or not os.path.isdir(fampath):
+    while fam3 ==fam1 or not os.path.isdir(fampath) or int(fam3[1:])>=900:
         fam3=random.choice(famlist)
         fampath=fiwpath+"/"+fam3
     memlist=os.listdir(fampath)
