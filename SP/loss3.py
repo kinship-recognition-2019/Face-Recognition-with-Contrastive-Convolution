@@ -2,7 +2,7 @@ from __future__ import print_function
 import argparse
 import torchvision
 
-# from get_pairs_list import get_csv
+from get_pairs_list import get_csv
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -181,10 +181,10 @@ def compute_contrastive_features(data_1, data_2, basemodel, genmodel, device):
 # 调整学习率
 def adjust_learning_rate(optimizer, epoch):
     for param_group in optimizer.param_groups:
-        if epoch >= 50 and epoch < 100:
+        if epoch >= 200 and epoch < 400:
             print('Learning rate is 0.001')
             param_group['lr'] = 0.001
-        elif epoch >= 100:
+        elif epoch >= 400:
             print('Learning rate is 3e-4')
             param_group['lr'] = 3e-4
 
@@ -192,8 +192,8 @@ def main():
     # 参数
     parser = argparse.ArgumentParser(description='PyTorch Contrastive Convolution for FR')
     parser.add_argument('--basemodel',type=str,default="resnet50",help="basemodel (Contrastive_4Layers/seresnet50/resnet50/inception_resnet_v2")
-    parser.add_argument('--batch_size', type=int, default=20, metavar='N', help='input batch size for training (default: 64)')
-    parser.add_argument('--test_batch_size', type=int, default=24, metavar='BST', help='input batch size for testing (default: 1000)')
+    parser.add_argument('--batch_size', type=int, default=32, metavar='N', help='input batch size for training (default: 64)')
+    parser.add_argument('--test_batch_size', type=int, default=20, metavar='BST', help='input batch size for testing (default: 1000)')
     parser.add_argument('--iters', type=int, default=200000, metavar='N', help='number of iterations to train (default: 10)')
     parser.add_argument('--start-epoch', default=3, type=int, metavar='N', help='manual epoch number (useful on restarts)')
     parser.add_argument('--lr', type=float, default=0.01, metavar='LR', help='learning rate (default: 0.01)')
