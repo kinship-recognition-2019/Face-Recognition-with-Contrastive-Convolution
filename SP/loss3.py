@@ -195,7 +195,7 @@ def main():
     parser.add_argument('--batch_size', type=int, default=32, metavar='N', help='input batch size for training (default: 64)')
     parser.add_argument('--test_batch_size', type=int, default=20, metavar='BST', help='input batch size for testing (default: 1000)')
     parser.add_argument('--iters', type=int, default=200000, metavar='N', help='number of iterations to train (default: 10)')
-    parser.add_argument('--start-epoch', default=3, type=int, metavar='N', help='manual epoch number (useful on restarts)')
+    parser.add_argument('--start-epoch', default=0, type=int, metavar='N', help='manual epoch number (useful on restarts)')
     parser.add_argument('--lr', type=float, default=0.01, metavar='LR', help='learning rate (default: 0.01)')
     parser.add_argument('--momentum', type=float, default=0.9, metavar='M', help='SGD momentum (default: 0.5)')
 
@@ -204,7 +204,7 @@ def main():
     parser.add_argument('--pretrained', default=False, type=bool, metavar='N', help='use pretrained ligthcnn model:True / False no pretrainedmodel )')
     parser.add_argument('--save_path', default='', type=str, metavar='PATH', help='path to save checkpoint (default: none)')
     # parser.add_argument('--resume', default='model200000_checkpoint.pth.tar', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
-    parser.add_argument('--resume', default='model_kinship3_checkpoint.pth.tar', type=str, metavar='PATH',
+    parser.add_argument('--resume', default='model_kinship_checkpoint.pth.tar', type=str, metavar='PATH',
                         help='path to latest checkpoint (default: none)')
     parser.add_argument('--compute_contrastive', default=True, type=bool,
                         metavar='N', help='use contrastive featurs or base mode features: True / False )')
@@ -228,7 +228,7 @@ def main():
                         help='path to fiw train list')
     parser.add_argument('--fiw-test-list-path', type=str, default='../dataset/FIW_List/father-daughter/fd_test.csv',
                         help='path to fiw test list')
-    # parser.add_argument('--pairs_list_path',type=str,default="fd_train.csv",help='pairs list csv')
+    parser.add_argument('--pairs_list_path',type=str,default="fd_train.csv",help='pairs list csv')
     parser.add_argument('--fiw-img-path', type=str, default='../dataset/FIDs_NEW', help='path to fiw')
     args = parser.parse_args()
 
