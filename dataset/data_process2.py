@@ -1,14 +1,19 @@
 import random
 
-paths = ['./FIW_List/brother-brother/bb_test.csv', './FIW_List/father-daughter/fd_test.csv', './FIW_List/father-son/fs_test.csv',
-       './FIW_List/grandfather-granddaughter/gfgd_test.csv', './FIW_List/grandfather-grandson/gfgs_test.csv',
-       './FIW_List/grandmother-granddaughter/gmgd_test.csv', './FIW_List/grandmother-grandson/gmgs_test.csv',
-       './FIW_List/mother-daughter/md_test.csv', './FIW_List/mother-son/ms_test.csv',
-       './FIW_List/sibs/sibs_test.csv', './FIW_List/sister-sister/ss_test.csv']
-nums = [20000, 4500, 10000, 1200, 360, 1000, 320, 3600, 6000, 9000, 1500]
+# paths = ['./FIW_List/brother-brother/bb_test.csv', './FIW_List/father-daughter/fd_test.csv', './FIW_List/father-son/fs_test.csv',
+#        './FIW_List/grandfather-granddaughter/gfgd_test.csv', './FIW_List/grandfather-grandson/gfgs_test.csv',
+#        './FIW_List/grandmother-granddaughter/gmgd_test.csv', './FIW_List/grandmother-grandson/gmgs_test.csv',
+#        './FIW_List/mother-daughter/md_test.csv', './FIW_List/mother-son/ms_test.csv',
+#        './FIW_List/sibs/sibs_test.csv', './FIW_List/sister-sister/ss_test.csv']
+# nums = [20000, 4500, 10000, 1200, 360, 1000, 320, 3600, 6000, 9000, 1500]
 
-for k in range(0, 11):
-    path = paths[k]
+paths = ['./FIW_List/father-daughter/fd_test',
+        './FIW_List/grandmother-grandson/gmgs_test',
+        './FIW_List/sister-sister/ss_test']
+
+nums = [4200, 140, 1000]
+for k in range(0, 3):
+    path = paths[k] + '0.csv'
 
 # TASK 2
     lines = []

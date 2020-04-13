@@ -23,7 +23,7 @@ from base_model import Contrastive_4Layers
 from senet import seresnet50,seresnet34
 # from inceptionv4 import inception_resnet_v2
 from resnet import resnet34,resnet50
-# from contrastive_cnn import Contrastive_14Layers
+from contrastive_cnn import Contrastive_14Layers, Contrastive_50Layers
 # 运行main，用于原论文 - 两张人脸是否属于同一个人问题
 
 
@@ -191,7 +191,7 @@ def adjust_learning_rate(optimizer, epoch):
 def main():
     # 参数
     parser = argparse.ArgumentParser(description='PyTorch Contrastive Convolution for FR')
-    parser.add_argument('--basemodel',type=str,default="resnet50",help="basemodel (Contrastive_4Layers/seresnet50/resnet50/inception_resnet_v2")
+    parser.add_argument('--basemodel',type=str,default="Contrastive_50Layers",help="basemodel (Contrastive_4Layers/seresnet50/resnet50/inception_resnet_v2")
     parser.add_argument('--batch_size', type=int, default=32, metavar='N', help='input batch size for training (default: 64)')
     parser.add_argument('--test_batch_size', type=int, default=20, metavar='BST', help='input batch size for testing (default: 1000)')
     parser.add_argument('--iters', type=int, default=200000, metavar='N', help='number of iterations to train (default: 10)')
@@ -204,7 +204,7 @@ def main():
     parser.add_argument('--pretrained', default=False, type=bool, metavar='N', help='use pretrained ligthcnn model:True / False no pretrainedmodel )')
     parser.add_argument('--save_path', default='', type=str, metavar='PATH', help='path to save checkpoint (default: none)')
     # parser.add_argument('--resume', default='model200000_checkpoint.pth.tar', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
-    parser.add_argument('--resume', default='model_kinship_checkpoint.pth.tar', type=str, metavar='PATH',
+    parser.add_argument('--resume', default='model5Contrastive_50Layers_checkpoint.pth.tar', type=str, metavar='PATH',
                         help='path to latest checkpoint (default: none)')
     parser.add_argument('--compute_contrastive', default=True, type=bool,
                         metavar='N', help='use contrastive featurs or base mode features: True / False )')
@@ -275,6 +275,9 @@ def main():
     elif(args.basemodel == "Contrastive_14Layers"):
         print("Contrastive_14Layers")
         basemodel = Contrastive_14Layers()
+    elif(args.basemodel == "Contrastive_50Layers"):
+        print("Contrastive_50Layers")
+        basemodel = Contrastive_50Layers()
     basemodel = basemodel.to(device)
     genmodel = GenModel(512).to(device)
     reg_model = Regressor(686).to(device)
@@ -323,7 +326,7 @@ def main():
 
             args.alpha=get_alpha(ratios)
             ratios=[]
-            save_name = args.save_path + 'model_kinship' + str(iterno) + '_checkpoint.pth.tar'
+            save_name = args.save_path + 'model' + str(iterno) + str(args.basemodel) + '_checkpoint.pth.tar'
             save_checkpoint(
                 {'iterno': iterno,
                 'state_dict1': genmodel.state_dict(), 'state_dict2': basemodel.state_dict(),

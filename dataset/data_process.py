@@ -1,42 +1,52 @@
+# ori = ['./FIW_List/brother-brother/bb.csv', './FIW_List/father-daughter/fd.csv', './FIW_List/father-son/fs.csv',
+#        './FIW_List/grandfather-granddaughter/gfgd.csv', './FIW_List/grandfather-grandson/gfgs.csv',
+#        './FIW_List/grandmother-granddaughter/gmgd.csv', './FIW_List/grandmother-grandson/gmgs.csv',
+#        './FIW_List/mother-daughter/md.csv', './FIW_List/mother-son/ms.csv',
+#        './FIW_List/sibs/sibs.csv', './FIW_List/sister-sister/ss.csv']
+# train = ['./FIW_List/brother-brother/bb_train.csv', './FIW_List/father-daughter/fd_train.csv', './FIW_List/father-son/fs_train.csv',
+#        './FIW_List/grandfather-granddaughter/gfgd_train.csv', './FIW_List/grandfather-grandson/gfgs_train.csv',
+#        './FIW_List/grandmother-granddaughter/gmgd_train.csv', './FIW_List/grandmother-grandson/gmgs_train.csv',
+#        './FIW_List/mother-daughter/md_train.csv', './FIW_List/mother-son/ms_train.csv',
+#        './FIW_List/sibs/sibs_train.csv', './FIW_List/sister-sister/ss_train.csv']
+# test = ['./FIW_List/brother-brother/bb_test.csv', './FIW_List/father-daughter/fd_test.csv', './FIW_List/father-son/fs_test.csv',
+#        './FIW_List/grandfather-granddaughter/gfgd_test.csv', './FIW_List/grandfather-grandson/gfgs_test.csv',
+#        './FIW_List/grandmother-granddaughter/gmgd_test.csv', './FIW_List/grandmother-grandson/gmgs_test.csv',
+#        './FIW_List/mother-daughter/md_test.csv', './FIW_List/mother-son/ms_test.csv',
+#        './FIW_List/sibs/sibs_test.csv', './FIW_List/sister-sister/ss_test.csv']
+# nums = [20000, 4500, 10000, 1200, 360, 1000, 320, 3600, 6000, 9000, 1500]
 
-ori = ['./FIW_List/brother-brother/bb.csv', './FIW_List/father-daughter/fd.csv', './FIW_List/father-son/fs.csv',
-       './FIW_List/grandfather-granddaughter/gfgd.csv', './FIW_List/grandfather-grandson/gfgs.csv',
-       './FIW_List/grandmother-granddaughter/gmgd.csv', './FIW_List/grandmother-grandson/gmgs.csv',
-       './FIW_List/mother-daughter/md.csv', './FIW_List/mother-son/ms.csv',
-       './FIW_List/sibs/sibs.csv', './FIW_List/sister-sister/ss.csv']
-train = ['./FIW_List/brother-brother/bb_train.csv', './FIW_List/father-daughter/fd_train.csv', './FIW_List/father-son/fs_train.csv',
-       './FIW_List/grandfather-granddaughter/gfgd_train.csv', './FIW_List/grandfather-grandson/gfgs_train.csv',
-       './FIW_List/grandmother-granddaughter/gmgd_train.csv', './FIW_List/grandmother-grandson/gmgs_train.csv',
-       './FIW_List/mother-daughter/md_train.csv', './FIW_List/mother-son/ms_train.csv',
-       './FIW_List/sibs/sibs_train.csv', './FIW_List/sister-sister/ss_train.csv']
-test = ['./FIW_List/brother-brother/bb_test.csv', './FIW_List/father-daughter/fd_test.csv', './FIW_List/father-son/fs_test.csv',
-       './FIW_List/grandfather-granddaughter/gfgd_test.csv', './FIW_List/grandfather-grandson/gfgs_test.csv',
-       './FIW_List/grandmother-granddaughter/gmgd_test.csv', './FIW_List/grandmother-grandson/gmgs_test.csv',
-       './FIW_List/mother-daughter/md_test.csv', './FIW_List/mother-son/ms_test.csv',
-       './FIW_List/sibs/sibs_test.csv', './FIW_List/sister-sister/ss_test.csv']
-nums = [20000, 4500, 10000, 1200, 360, 1000, 320, 3600, 6000, 9000, 1500]
+ori = ['./FIW_List/father-daughter/fd.csv',
+       './FIW_List/grandmother-grandson/gmgs.csv',
+       './FIW_List/sister-sister/ss.csv']
+train = ['./FIW_List/father-daughter/fd_train',
+         './FIW_List/grandmother-grandson/gmgs_train',
+         './FIW_List/sister-sister/ss_train']
+test = ['./FIW_List/father-daughter/fd_test',
+        './FIW_List/grandmother-grandson/gmgs_test',
+        './FIW_List/sister-sister/ss_test']
+nums = [4200, 140, 1000]
 
 path_ori = ''
 path_train = ''
 path_test = ''
 
-for i in range(11):
+for i in range(3):
     path_ori = ori[i]
     path_train = train[i]
     path_test = test[i]
     cnt1 = 0
 
-    with open(path_ori, 'r') as f, open(path_train, 'w') as f1, open(path_test, 'w') as f2:
+    with open(path_ori, 'r') as f, open(path_train+'0.csv', 'w') as f1, open(path_test+'0.csv', 'w') as f2:
         for line in f.readlines()[1:]:
             _, label, p1, p2 = line.strip().split(',')
             F1, MID1, P1 = p1.split('/')
             F2, MID2, P2 = p2.split('/')
-            if int(F1[1:5]) > 900 and int(F2[1:5]) > 900:
+            if 0 < int(F1[1:5]) <= 100 and 0 < int(F2[1:5]) <= 100:
                 if label == '1' and cnt1 >= nums[i]:
                     continue
                 f2.write(label + ',' + p1 + ',' + p2 + '\n')
                 cnt1 += 1
-            elif int(F1[1:5]) <= 900 and int(F2[1:5]) <= 900:
+            elif (int(F1[1:5]) <= 0 or int(F1[1:5]) > 100) and (int(F2[1:5]) <= 0 or int(F2[1:5]) > 100):
                 f1.write(label + ',' + p1 + ',' + p2 + '\n')
 #         lines = 0
 #         list = []
