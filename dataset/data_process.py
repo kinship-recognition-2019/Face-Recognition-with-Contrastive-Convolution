@@ -15,38 +15,33 @@
 #        './FIW_List/sibs/sibs_test.csv', './FIW_List/sister-sister/ss_test.csv']
 # nums = [20000, 4500, 10000, 1200, 360, 1000, 320, 3600, 6000, 9000, 1500]
 
-ori = ['./FIW_List/father-daughter/fd.csv',
-       './FIW_List/grandmother-grandson/gmgs.csv',
-       './FIW_List/sister-sister/ss.csv']
-train = ['./FIW_List/father-daughter/fd_train',
-         './FIW_List/grandmother-grandson/gmgs_train',
-         './FIW_List/sister-sister/ss_train']
-test = ['./FIW_List/father-daughter/fd_test',
-        './FIW_List/grandmother-grandson/gmgs_test',
-        './FIW_List/sister-sister/ss_test']
-nums = [4200, 140, 1000]
+ori = ['./FIW_List/father-son/fs.csv']
+train = ['./FIW_List/father-son/fs_train']
+test = ['./FIW_List/father-son/fs_test']
+
+nums = [10000]
 
 path_ori = ''
 path_train = ''
 path_test = ''
 
-for i in range(3):
+for i in range(1):
     path_ori = ori[i]
     path_train = train[i]
     path_test = test[i]
     cnt1 = 0
 
-    with open(path_ori, 'r') as f, open(path_train+'0.csv', 'w') as f1, open(path_test+'0.csv', 'w') as f2:
+    with open(path_ori, 'r') as f, open(path_train+'9.csv', 'w') as f1, open(path_test+'9.csv', 'w') as f2:
         for line in f.readlines()[1:]:
             _, label, p1, p2 = line.strip().split(',')
             F1, MID1, P1 = p1.split('/')
             F2, MID2, P2 = p2.split('/')
-            if 0 < int(F1[1:5]) <= 100 and 0 < int(F2[1:5]) <= 100:
+            if 900 < int(F1[1:5]) <= 1000 and 900 < int(F2[1:5]) <= 1000:
                 if label == '1' and cnt1 >= nums[i]:
                     continue
                 f2.write(label + ',' + p1 + ',' + p2 + '\n')
                 cnt1 += 1
-            elif (int(F1[1:5]) <= 0 or int(F1[1:5]) > 100) and (int(F2[1:5]) <= 0 or int(F2[1:5]) > 100):
+            elif (int(F1[1:5]) <= 900 or int(F1[1:5]) > 1000) and (int(F2[1:5]) <= 900 or int(F2[1:5]) > 1000):
                 f1.write(label + ',' + p1 + ',' + p2 + '\n')
 #         lines = 0
 #         list = []
