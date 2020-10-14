@@ -23,10 +23,6 @@ from FIW_testdataset import FIWTestDataset
 from onlineCasiadataset_loader import CasiaFaceDataset
 from LFWDataset import LFWDataset
 
-
-# 运行main，用于原论文 - 两张人脸是否属于同一个人问题
-
-
 def imshow(img):
     npimg = img.numpy()
     plt.axis("off")
@@ -35,19 +31,12 @@ def imshow(img):
     plt.show()
 
 # def get_alpha(ratios):
-#     alpha=torch.mean(torch.tensor(ratios)#.to("cuda"))
+#     alpha=torch.mean(torch.tensor(ratios).to("cuda"))
 #     print("adjust alpha to :",alpha.item())
 #     return alpha
 
-# 训练函数
-def train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, device, train_loader, optimizer, criterion, criterion1, iteration):
-    # reg_model_kinship.train()
-    # basemodel.eval()
-    # genmodel.eval()
-    # reg_model.eval()
-    # idreg_model.eval()
 
-    #basemodel.train()
+def train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, device, train_loader, optimizer, criterion, criterion1, iteration, alpha, ratios):
     genmodel.train()
     reg_model.train()
     idreg_model.train()
@@ -60,9 +49,7 @@ def train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, 
         # imshow(torchvision.utils.make_grid(data_2))
 
         target = target.float().unsqueeze(1)
-        # print("target", target)
-        # print("label1", c1)
-        # print("label2", c2)
+        
         optimizer.zero_grad()
 
         A_list, B_list, org_kernel_1, org_kernel_2 = compute_contrastive_features(data_1, data_2, basemodel, genmodel,
@@ -81,18 +68,15 @@ def train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, 
         hk2 = idreg_model(org_kernel_2)
 
         loss2 = 0.5 * (criterion(hk1, c1) + criterion(hk2, c2))
+        
         # loss = loss2 + loss1 + loss3
-        # print(reg_model_kinship.state_dict())
-        # loss = loss1 + alpha*loss2
-        loss = loss1 + loss2
-        # ratios.append(loss1/(loss2+1e-6))
+       
+        loss = loss1 + alpha * loss2
+        ratios.append(loss1 / (loss2 + 1e-6))
         loss.backward()
 
         optimizer.step()
 
-        # print('Train iter: {} [{}/{} ({:.0f}%)]\tLoss: {:.4f}'.format(
-        #     iteration, batch_idx * len(data_1), len(train_loader.dataset), 100. * batch_idx / len(train_loader),
-        #     loss.item()))
         print('Train iter: {} [{}/{} ({:.0f}%)]\tLoss: {:.4f} {:.4f} {:.4f}'.format(
             iteration, batch_idx * len(data_1), len(train_loader.dataset), 100. * batch_idx / len(train_loader),
             loss.item(), loss1.item(), loss2.item()))
@@ -137,13 +121,9 @@ def ttest(test_loader, basemodel, genmodel, reg_model, epoch, device, args):
 
         return np.mean(accuracy)
 
-# 保存断点
 def save_checkpoint(state, filename):
     torch.save(state, filename)
 
-# 利用第一层和第二层网络进行人脸特征对比
-# 输出通过特定生成的kernel而卷积产生的人脸数据和处理过的kernel
-# 输出作为regressor和identity regressor的输入
 def compute_contrastive_features(data_1, data_2, basemodel, genmodel, device):
     data_1, data_2 = (data_1).to(device), (data_2).to(device)
 
@@ -179,15 +159,14 @@ def compute_contrastive_features(data_1, data_2, basemodel, genmodel, device):
 
     return A_list, B_list, kernel_1, kernel_2
 
-# 调整学习率
 def adjust_learning_rate(optimizer, epoch):
     for param_group in optimizer.param_groups:
         if epoch >= 200 and epoch < 400:
-            print('Learning rate is 0.001')
-            param_group['lr'] = 0.001
+            # print('Learning rate is 0.001')
+            param_group['lr'] = 0.01
         elif epoch >= 400:
-            print('Learning rate is 3e-4')
-            param_group['lr'] = 3e-4
+            # print('Learning rate is 3e-4')
+            param_group['lr'] = 0.001
 
 def main():
     # 参数
@@ -229,16 +208,13 @@ def main():
     #                     help='path to fiw train list')
     # parser.add_argument('--fiw-test-list-path', type=str, default='./dataset/FIW_List/father-daughter/fd_test.csv',
     #                     help='path to fiw test list')
-    # parser.add_argument('--pairs_list_path',type=str,default="fd_train.csv",help='pairs list csv')
     # parser.add_argument('--fiw-img-path', type=str, default='./dataset/FIDs_NEW', help='path to fiw')
     args = parser.parse_args()
 
-    # cuda设置
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 
-    # 测试集处理，采用LFW人脸测试集
     test_transform = transforms.Compose([
         transforms.Grayscale(num_output_channels=1),
         transforms.Resize(128),
@@ -249,7 +225,7 @@ def main():
     test_dataset = LFWDataset(dir=args.lfw_dir, pairs_path=args.lfw_pairs_path, transform=test_transform)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
 
-    # 训练集的transform函数
+
     transform = transforms.Compose([
         transforms.Resize(128),
         transforms.RandomHorizontalFlip(),
@@ -258,27 +234,7 @@ def main():
     if(args.basemodel == "Contrastive_4Layers"):
         print("Contrastive_4Layers")
         basemodel = Contrastive_4Layers(num_classes=args.num_classes).to(device)
-    # elif(args.basemodel == "densenet121"):
-    #     print("densenet121")
-    #     basemodel = densenet121()
-    # elif(args.basemodel == "seresnet18"):
-    #     print("seresnet18")
-    #     basemodel = seresnet18()
-    # elif(args.basemodel == "resnet50"):
-    #     print("resnet50")
-    #     basemodel = resnet50()
-    # elif(args.basemodel == "resnet34"):
-    #     print("resnet34")
-    #     basemodel = resnet34()
-    # elif(args.basemodel == "inception_resnet_v2"):
-    #     print("inception_resnet_v2")
-    #     basemodel = inception_resnet_v2()
-    # elif(args.basemodel == "Contrastive_14Layers"):
-    #     print("Contrastive_14Layers")
-    #     basemodel = Contrastive_14Layers()
-    # elif(args.basemodel == "Contrastive_50Layers"):
-    #     print("Contrastive_50Layers")
-    #     basemodel = Contrastive_50Layers()
+    
     basemodel = basemodel.to(device)
     genmodel = GenModel(512).to(device)
     reg_model = Regressor(686).to(device)
@@ -291,9 +247,11 @@ def main():
     if args.resume:
         if os.path.isfile(args.resume):
             print("=> loading checkpoint '{}'".format(args.resume))
+
             # checkpoint = torch.load(args.resume, map_location=torch.device('cpu'))
             checkpoint = torch.load(args.resume)
-            # args.start_epoch = checkpoint['iterno']
+
+            args.start_epoch = checkpoint['iterno']
             genmodel.load_state_dict(checkpoint['state_dict1'])
             basemodel.load_state_dict(checkpoint['state_dict2'])
             reg_model.load_state_dict(checkpoint['state_dict3'])
@@ -301,33 +259,29 @@ def main():
         else:
             print("=> no checkpoint found at '{}'".format(args.resume))
 
-
-    # 损失函数
     criterion2 = nn.CrossEntropyLoss().to(device)
     criterion1 = nn.BCELoss().to(device)
-    # ratios = []
+    ratios = []
     print('Device being used is :' + str(device))
 
     for iterno in range(args.start_epoch + 1, args.iters + 1):
         adjust_learning_rate(optimizer, iterno)
         # train_dataset = FIWTrainDataset(img_path=args.fiw_img_path, list_path=args.fiw_train_list_path,
         #                                 noofpairs=1000*args.batch_size, transform=transform)
-        train_dataset = CasiaFaceDataset(noofpairs=4, transform=transform, is_train=True, trainfile=args.root_path)
+        train_dataset = CasiaFaceDataset(noofpairs=args.batch_size, transform=transform, is_train=True, trainfile=args.root_path)
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
 
-        # 训练
-        train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, device, train_loader,optimizer, criterion2, criterion1, iterno)
+        train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, device, train_loader,optimizer, criterion2, criterion1, iterno,args.alpha,ratios)
 
-        if iterno % 100 == 0:
-            # 每100轮训练进行一次测试
+        if iterno % 1000 == 0:
             testacc = ttest(test_loader, basemodel, genmodel, reg_model, iterno, device, args)
             f = open('LFW_performance.txt', 'a')
             f.write('\n' + str(iterno) + ': ' + str(testacc * 100))
             f.close()
             print('Test accuracy: {:.4f}'.format(testacc * 100))
 
-            args.alpha=get_alpha(ratios)
-            ratios=[]
+            # args.alpha=get_alpha(ratios)
+            # ratios=[]
             save_name = args.save_path + 'model' + str(iterno) + str(args.basemodel) + '_checkpoint.pth.tar'
             save_checkpoint(
                 {'iterno': iterno,
@@ -335,10 +289,6 @@ def main():
                 'state_dict3': reg_model.state_dict(), 'state_dict4': idreg_model.state_dict(),
                 'optimizer': optimizer.state_dict(),
                 }, save_name)
-
-            # print("Regenerate sample pairs......")
-            # get_csv(args.fiw_train_list_path,args.pairs_list_path,args.fiw_img_path)
-
 
 
 if __name__ == '__main__':
