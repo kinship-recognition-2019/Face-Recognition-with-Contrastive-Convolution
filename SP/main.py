@@ -36,7 +36,7 @@ def imshow(img):
 #     return alpha
 
 
-def train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, device, train_loader, optimizer, criterion, criterion1, iteration, alpha, ratios):
+def train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, device, train_loader, optimizer, criterion, criterion1, iteration):
     genmodel.train()
     reg_model.train()
     idreg_model.train()
@@ -71,8 +71,7 @@ def train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, 
         
         # loss = loss2 + loss1 + loss3
        
-        loss = loss1 + alpha * loss2
-        ratios.append(loss1 / (loss2 + 1e-6))
+        loss = loss1 +loss2
         loss.backward()
 
         optimizer.step()
@@ -193,17 +192,17 @@ def main():
     parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
                         help='number of data loading workers (default: 16)')
 
-    parser.add_argument('--lfw-dir', type=str, default='./dataset/lfw',
+    parser.add_argument('--lfw-dir', type=str, default='../dataset/lfw',
                         help='path to dataset')
-    parser.add_argument('--lfw_pairs_path', type=str, default='./dataset/pairs.txt',
+    parser.add_argument('--lfw_pairs_path', type=str, default='../dataset/pairs.txt',
                         help='path to pairs file')
-    parser.add_argument('--root_path', default='./dataset/CASIA-WebFace', type=str, metavar='PATH',
+    parser.add_argument('--root_path', default='../dataset/CASIA-WebFace', type=str, metavar='PATH',
                         help='path to root path of images (default: none)')
     parser.add_argument('--num_classes', default=10574, type=int,
                        metavar='N', help='number of classes (default: 10574)')
     # parser.add_argument('--num_classes', default=1000, type=int,
     #                     metavar='N', help='number of classes (default: 10574)')
-    parser.add_argument('--alpha',default=1.0,type=float,help="the weight of loss2")
+    # parser.add_argument('--alpha',default=1.0,type=float,help="the weight of loss2")
     # parser.add_argument('--fiw-train-list-path', type=str, default='./dataset/FIW_List/father-daughter/fd_train.csv',
     #                     help='path to fiw train list')
     # parser.add_argument('--fiw-test-list-path', type=str, default='./dataset/FIW_List/father-daughter/fd_test.csv',
@@ -271,7 +270,7 @@ def main():
         train_dataset = CasiaFaceDataset(noofpairs=args.batch_size, transform=transform, is_train=True, trainfile=args.root_path)
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
 
-        train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, device, train_loader,optimizer, criterion2, criterion1, iterno,args.alpha,ratios)
+        train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, device, train_loader,optimizer, criterion2, criterion1, iterno)
 
         if iterno % 1000 == 0:
             testacc = ttest(test_loader, basemodel, genmodel, reg_model, iterno, device, args)
