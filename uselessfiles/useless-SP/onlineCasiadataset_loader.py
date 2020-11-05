@@ -33,7 +33,7 @@ class CasiaFaceDataset(Dataset):
         self.train_list = self.create_pairs()
 
     def get_id_imagelist(self):
-        f = open('./dataset/casialist.txt')
+        f = open('../dataset/casialist.txt')
         lines = f.readlines()
         #print(len(lines),lines[0:5])
         subjectdict = dict()
@@ -111,8 +111,8 @@ class CasiaFaceDataset(Dataset):
             id2 = self.train_list[i][3]
             label = self.train_list[i][4]
            
-            path_img1 = os.path.join('./dataset/CASIA-WebFace/', image_name1) #Location to the image
-            path_img2 = os.path.join('./dataset/CASIA-WebFace/', image_name2)
+            path_img1 = os.path.join('../dataset/CASIA-WebFace/', image_name1) #Location to the image
+            path_img2 = os.path.join('../dataset/CASIA-WebFace/', image_name2)
             #print(path_img1,path_img2,id1,id2,label)
             if os.path.exists(path_img1) and os.path.exists(path_img2):
                 #print('Both images exist')
