@@ -1,4 +1,9 @@
-#coding:utf-8
+'''
+FINAL VERSION
+训练base model, gen model, reg_model_kinship, idreg_model
+其中base model, gen model由断点处加载
+每次修改四处 + 断点处cpu。
+'''
 from __future__ import print_function
 import argparse
 import torchvision
@@ -25,8 +30,6 @@ from senet import seresnet50,seresnet34
 from inceptionv4 import inception_resnet_v2
 from resnet import resnet34,resnet50
 from contrastive_cnn import Contrastive_14Layers,Contrastive_34Layers
-# 运行main，用于原论文 - 两张人脸是否属于同一个人问题
-
 
 def imshow(img):
     npimg = img.numpy()
@@ -42,28 +45,18 @@ def get_alpha(ratios):
 
 # 训练函数
 def train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, device, train_loader, optimizer, criterion, criterion1, iteration,alpha,ratios):
-    # reg_model_kinship.train()
-    # basemodel.eval()
-    # genmodel.eval()
-    # reg_model.eval()
-    # idreg_model.eval()
-
-    #basemodel.train()
+    basemodel.train()
     genmodel.train()
-    reg_model.train()
+    reg_model_kinship.train()
     idreg_model.train()
 
     for batch_idx, (data_1, data_2, c1, c2, target) in enumerate(train_loader):
         data_1, data_2, c1, c2, target = (data_1).to(device), (data_2).to(device), torch.from_numpy(np.asarray(c1)).to(
             device), torch.from_numpy(np.asarray(c2)).to(device), torch.from_numpy(np.asarray(target)).to(device)
         concatenated = torch.cat((data_1, data_2), 0)
-        # imshow(torchvision.utils.make_grid(data_1))
-        # imshow(torchvision.utils.make_grid(data_2))
 
         target = target.float().unsqueeze(1)
-        # print("target", target)
-        # print("label1", c1)
-        # print("label2", c2)
+    
         optimizer.zero_grad()
 
         A_list, B_list, org_kernel_1, org_kernel_2 = compute_contrastive_features(data_1, data_2, basemodel, genmodel,
@@ -95,7 +88,7 @@ def train(args, basemodel, idreg_model, genmodel, reg_model, reg_model_kinship, 
         #     loss.item()))
         print('Train iter: {} [{}/{} ({:.0f}%)]\tLoss: {:.4f} {:.4f} {:.4f}'.format(
             iteration, batch_idx * len(data_1), len(train_loader.dataset), 100. * batch_idx / len(train_loader),
-            loss.item(), loss1.item(), loss2.item()))
+            loss.item(), loss3.item(), loss2.item()))
 
 # 测试函数
 def ttest(test_loader, basemodel, genmodel, reg_model, epoch, device, args):
@@ -109,9 +102,7 @@ def ttest(test_loader, basemodel, genmodel, reg_model, epoch, device, args):
     with torch.no_grad():
         for batch_idx, (data_a, data_b, label) in pbar:
             data_a, data_b = data_a.to(device), data_b.to(device)
-            # concatenated = torch.cat((data_a, data_b), 0)
-            # imshow(torchvision.utils.make_grid(data_a))
-            # imshow(torchvision.utils.make_grid(data_b))
+    
 
             if args.compute_contrastive:
                 out1_a, out1_b, k1, k2 = compute_contrastive_features(data_a, data_b, basemodel, genmodel, device)
@@ -137,13 +128,9 @@ def ttest(test_loader, basemodel, genmodel, reg_model, epoch, device, args):
 
         return np.mean(accuracy)
 
-# 保存断点
 def save_checkpoint(state, filename):
     torch.save(state, filename)
 
-# 利用第一层和第二层网络进行人脸特征对比
-# 输出通过特定生成的kernel而卷积产生的人脸数据和处理过的kernel
-# 输出作为regressor和identity regressor的输入
 def compute_contrastive_features(data_1, data_2, basemodel, genmodel, device):
     data_1, data_2 = (data_1).to(device), (data_2).to(device)
 
@@ -224,12 +211,12 @@ def main():
     parser.add_argument('--num_classes', default=1000, type=int,
                         metavar='N', help='number of classes (default: 10574)')
     parser.add_argument('--alpha',default=0.1,type=float,help="the weight of loss2")
-    parser.add_argument('--fiw-train-list-path', type=str, default='../dataset/FIW_List/father-son/fs_train1.csv',
+    parser.add_argument('--fiw-train-list-path', type=str, default='../dataset/FIW_List/father-daughter/fd_train0.csv',
                         help='path to fiw train list')
-    parser.add_argument('--fiw-test-list-path', type=str, default='../dataset/FIW_List/father-son/fs_test1.csv',
+    parser.add_argument('--fiw-test-list-path', type=str, default='../dataset/FIW_List/father-daughter/fd_test0.csv',
                         help='path to fiw test list')
-    parser.add_argument('--pairs_list_path',type=str,default="list/fs_train1.csv",help='pairs list csv')
-    parser.add_argument('--idx',type = int,default=1,help='index of the cross valitation(0 ~ 9)')
+    parser.add_argument('--pairs_list_path',type=str,default="list/fd_train0.csv",help='pairs list csv')
+    parser.add_argument('--idx',type = int,default=0,help='index of the cross valitation(0 ~ 9)')
     parser.add_argument('--fiw-img-path', type=str, default='../dataset/FIDs_NEW', help='path to fiw')
     args = parser.parse_args()
 
@@ -287,19 +274,18 @@ def main():
     idreg_model = Identity_Regressor(14 * 512 * 3 * 3, args.num_classes).to(device)
 
     # params = list(basemodel.parameters()) + list(genmodel.parameters()) + list(reg_model.parameters()) + list(idreg_model.parameters())
-    # params = list(basemodel.parameters()) + list(genmodel.parameters()) + list(reg_model_kinship.parameters()) + list(idreg_model.parameters())
-    params = list(reg_model_kinship.parameters()) + list(idreg_model.parameters())
+    params = list(basemodel.parameters()) + list(genmodel.parameters()) + list(reg_model_kinship.parameters()) + list(idreg_model.parameters())
     optimizer = optim.SGD(params, lr=args.lr, momentum=args.momentum)
 
     if args.resume:
         if os.path.isfile(args.resume):
             print("=> loading checkpoint '{}'".format(args.resume))
-            # checkpoint = torch.load(args.resume, map_location=torch.device('cpu'))
-            checkpoint = torch.load(args.resume)
+            checkpoint = torch.load(args.resume, map_location=torch.device('cpu'))
+            #checkpoint = torch.load(args.resume)
             # args.start_epoch = checkpoint['iterno']
             genmodel.load_state_dict(checkpoint['state_dict1'])
             basemodel.load_state_dict(checkpoint['state_dict2'])
-            reg_model.load_state_dict(checkpoint['state_dict3'])
+            # reg_model.load_state_dict(checkpoint['state_dict3'])
             # idreg_model.load_state_dict(checkpoint['state_dict4'])
         else:
             print("=> no checkpoint found at '{}'".format(args.resume))
@@ -324,14 +310,18 @@ def main():
             # 每100轮训练进行一次测试X
             # testacc = ttest(test_loader, basemodel, genmodel, reg_model, iterno, device, args)
             testacc = ttest(test_loader, basemodel, genmodel, reg_model_kinship, iterno, device, args)
-            f = open('fs' + str(args.idx) + 'performance.txt', 'a')
+            f = open('fd' + str(args.idx) + 'performance.txt', 'a')
             f.write('\n' + str(iterno) + ': ' + str(testacc * 100))
             f.close()
             print('Test accuracy: {:.4f}'.format(testacc * 100))
 
+            print("Regenerate sample pairs......")
+            get_csv(args.fiw_train_list_path,args.pairs_list_path,args.fiw_img_path,args.idx)
+
+        if iterno % 10 == 0:
             args.alpha=get_alpha(ratios)
             ratios=[]
-            save_name = args.save_path + 'fs' + str(args.idx) + '_'+ str(iterno) + 'checkpoint.pth.tar'
+            save_name = args.save_path + 'fd' + str(args.idx) + '_'+ str(iterno) + 'checkpoint.pth.tar'
             save_checkpoint(
                 {'iterno': iterno,
                 'state_dict1': genmodel.state_dict(), 'state_dict2': basemodel.state_dict(),
@@ -339,8 +329,7 @@ def main():
                 'optimizer': optimizer.state_dict(),
                 }, save_name)
 
-            print("Regenerate sample pairs......")
-            get_csv(args.fiw_train_list_path,args.pairs_list_path,args.fiw_img_path,args.idx)
+            
 
 
 
