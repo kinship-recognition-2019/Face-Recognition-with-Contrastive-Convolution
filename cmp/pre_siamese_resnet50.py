@@ -1,0 +1,255 @@
+'''
+记得改cpu
+'''
+from __future__ import print_function
+import argparse
+import torchvision
+
+from get_pairs_list import get_csv
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from torchvision import transforms
+import os
+import numpy as np
+from regressor import Regressor
+from eval_metrics import evaluate
+from onlineCasiadataset_loader import CasiaFaceDataset
+from LFWDataset import LFWDataset
+import matplotlib.pyplot as plt
+from tqdm import tqdm
+from base_model import resnet_50
+
+
+def imshow(img):
+    npimg = img.numpy()
+    plt.axis("off")
+
+    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+    plt.show()
+
+def get_alpha(ratios):
+    alpha=torch.mean(torch.tensor(ratios).to("cuda"))
+    print("adjust alpha to :",alpha.item())
+    return alpha
+
+# 训练函数
+def train(args, basemodel, reg_model_kinship, device, train_loader, optimizer, criterion, iteration):
+    basemodel.train()
+    reg_model_kinship.train()
+
+    for batch_idx, (data_1, data_2, c1, c2, target) in enumerate(train_loader):
+        data_1, data_2, c1, c2, target = (data_1).to(device), (data_2).to(device), torch.from_numpy(np.asarray(c1)).to(
+            device), torch.from_numpy(np.asarray(c2)).to(device), torch.from_numpy(np.asarray(target)).to(device)
+
+        target = target.float().unsqueeze(1)
+    
+        optimizer.zero_grad()
+        x1 = basemodel(data_1)
+        x2 = basemodel(data_2)
+
+        x3 = torch.sub(x1, x2)
+        x3 = torch.mul(x3, x3)
+        x = torch.mul(x1, x2)
+    
+        x = torch.cat((x, x3), -1)
+    
+        SAB = reg_model_kinship(x)
+        
+        loss = criterion(SAB, target)
+
+        loss.backward()
+
+        optimizer.step()
+
+        print('Train iter: {} [{}/{} ({:.0f}%)]\tLoss: {:.4f}'.format(
+            iteration, batch_idx * len(data_1), len(train_loader.dataset), 100. * batch_idx / len(train_loader),
+            loss.item()))
+
+# 测试函数
+def ttest(test_loader, basemodel, reg_model, epoch, device, args):
+    basemodel.eval()
+    reg_model.eval()
+
+    labels, distance, distances = [], [], []
+
+    pbar = tqdm(enumerate(test_loader))
+    with torch.no_grad():
+        for batch_idx, (data_a, data_b, label) in pbar:
+            data_a, data_b = data_a.to(device), data_b.to(device)
+    
+
+            x1 = basemodel(data_a)
+            x2 = basemodel(data_b)
+
+            x3 = torch.sub(x1, x2)
+            x3 = torch.mul(x3, x3)
+            x = torch.mul(x1, x2)
+        
+            x = torch.cat((x, x3), -1)
+        
+            SAB = reg_model(x)
+            SAB = torch.squeeze(SAB, 1)
+
+            distances.append(SAB.data.cpu().numpy())
+            labels.append(label.data.cpu().numpy())
+
+            if batch_idx % args.log_interval == 0:
+                pbar.set_description('Epoch: {} [{}/{} ({:.0f}%)]'.format(
+                    epoch, batch_idx * len(data_a), len(test_loader.dataset),
+                           100. * batch_idx / len(test_loader)))
+
+        labels = np.array([sublabel for label in labels for sublabel in label])
+        distances = np.array([subdist for dist in distances for subdist in dist])
+
+        accuracy = evaluate(1 - distances, labels)
+        print("acc", accuracy)
+
+        return np.mean(accuracy)
+
+def save_checkpoint(state, filename):
+    torch.save(state, filename)
+
+# 调整学习率
+def adjust_learning_rate(optimizer, epoch):
+    for param_group in optimizer.param_groups:
+        if epoch >= 80 and epoch < 160:
+            print('Learning rate is 0.001')
+            param_group['lr'] = 0.001
+        elif epoch >= 160:
+            print('Learning rate is 3e-4')
+            param_group['lr'] = 3e-4
+
+def main():
+    # 参数
+    parser = argparse.ArgumentParser(description='PyTorch Contrastive Convolution for FR')
+    parser.add_argument('--basemodel',type=str,default="resnet50",help="basemodel (Contrastive_4Layers/seresnet50/resnet50/inception_resnet_v2")
+    parser.add_argument('--batch_size', type=int, default=64, metavar='N', help='input batch size for training (default: 64)')
+    parser.add_argument('--test_batch_size', type=int, default=128, metavar='BST', help='input batch size for testing (default: 1000)')
+    parser.add_argument('--iters', type=int, default=200000, metavar='N', help='number of iterations to train (default: 10)')
+    parser.add_argument('--start-epoch', default=0, type=int, metavar='N', help='manual epoch number (useful on restarts)')
+    parser.add_argument('--lr', type=float, default=0.005, metavar='LR', help='learning rate (default: 0.01)')
+    parser.add_argument('--momentum', type=float, default=0.9, metavar='M', help='SGD momentum (default: 0.5)')
+
+    parser.add_argument('--no-cuda', action='store_true', default=False, help='disables CUDA training')
+    parser.add_argument('--log-interval', type=int, default=100, metavar='N', help='how many batches to wait before logging training status')
+    parser.add_argument('--pretrained', default=False, type=bool, metavar='N', help='use pretrained ligthcnn model:True / False no pretrainedmodel )')
+    parser.add_argument('--save_path', default='../model/fiw/', type=str, metavar='PATH', help='path to save checkpoint (default: none)')
+    parser.add_argument('--resume', default='', type=str, metavar='PATH',
+                        help='path to latest checkpoint (default: none)')
+    parser.add_argument('--compute_contrastive', default=True, type=bool,
+                        metavar='N', help='use contrastive featurs or base mode features: True / False )')
+    parser.add_argument('--log_interval', type=int, default=10,
+                        help='how many batches to wait before logging training status')
+    parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
+                        help='number of data loading workers (default: 16)')
+
+    parser.add_argument('--lfw-dir', type=str, default='../dataset/lfw',
+                        help='path to dataset')
+    parser.add_argument('--lfw_pairs_path', type=str, default='../dataset/pairs.txt',
+                        help='path to pairs file')
+    parser.add_argument('--root_path', default='../dataset/CASIA-WebFace', type=str, metavar='PATH',
+                        help='path to root path of images (default: none)')
+    # parser.add_argument('--num_classes', default=10574, type=int,
+    #                    metavar='N', help='number of classes (default: 10574)')
+    # parser.add_argument('--num_classes', default=1000, type=int,
+    #                     metavar='N', help='number of classes (default: 10574)')
+    parser.add_argument('--alpha',default=0.1,type=float,help="the weight of loss2")
+    parser.add_argument('--fiw-train-list-path', type=str, default='../dataset/FIW_List/father-daughter/fd_train0.csv',
+                        help='path to fiw train list')
+    parser.add_argument('--fiw-test-list-path', type=str, default='../dataset/FIW_List/father-daughter/fd_test0.csv',
+                        help='path to fiw test list')
+    parser.add_argument('--pairs_list_path',type=str,default="list/fd_train0.csv",help='pairs list csv')
+    parser.add_argument('--idx',type = int,default=0,help='index of the cross valitation(0 ~ 9)')
+    parser.add_argument('--fiw-img-path', type=str, default='../dataset/FIDs_NEW', help='path to fiw')
+    args = parser.parse_args()
+
+    # cuda设置
+    use_cuda = not args.no_cuda and torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
+    kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
+
+    # 测试集处理，采用LFW人脸测试集
+    test_transform = transforms.Compose([
+        transforms.Resize(224),
+        transforms.ToTensor()])
+
+    test_dataset = LFWDataset(dir=args.lfw_dir,pairs_path=args.lfw_pairs_path,transform=test_transform)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
+
+    # 训练集的transform函数
+    transform = transforms.Compose([
+        transforms.Resize(224),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(), ])
+
+
+    
+    if(args.basemodel == "resnet50"):
+        print("resnet50")
+        basemodel = resnet_50()
+    
+    basemodel = basemodel.to(device)
+    reg_model_kinship = Regressor(8192).to(device)
+
+    params = list(basemodel.parameters()) + list(reg_model_kinship.parameters())
+    optimizer = optim.SGD(params, lr=args.lr, momentum=args.momentum)
+
+    if args.resume:
+        if os.path.isfile(args.resume):
+            print("=> loading checkpoint '{}'".format(args.resume))
+            checkpoint = torch.load(args.resume, map_location=torch.device('cpu'))
+            #checkpoint = torch.load(args.resume)
+            # args.start_epoch = checkpoint['iterno']
+            # genmodel.load_state_dict(checkpoint['state_dict1'])
+            basemodel.load_state_dict(checkpoint['state_dict2'])
+            # reg_model.load_state_dict(checkpoint['state_dict3'])
+            # idreg_model.load_state_dict(checkpoint['state_dict4'])
+        else:
+            print("=> no checkpoint found at '{}'".format(args.resume))
+
+
+    # 损失函数
+    criterion2 = nn.CrossEntropyLoss().to(device)
+    criterion1 = nn.BCELoss().to(device)
+    ratios = []
+    print('Device being used is :' + str(device))
+
+    for iterno in range(args.start_epoch + 1, args.iters + 1):
+        adjust_learning_rate(optimizer, iterno)
+        train_dataset = CasiaFaceDataset(noofpairs=args.batch_size, transform=transform, is_train=True)
+        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
+
+        # 训练
+        train(args, basemodel, reg_model_kinship, device, train_loader, optimizer, criterion1, iterno)
+
+        if iterno % 1== 0:
+            # 每100轮训练进行一次测试X
+        
+            testacc = ttest(test_loader, basemodel, reg_model_kinship, iterno, device, args)
+            f = open('casia' + str(args.idx) + 'performance.txt', 'a')
+            f.write('\n' + str(iterno) + ': ' + str(testacc * 100))
+            f.close()
+            print('Test accuracy: {:.4f}'.format(testacc * 100))
+
+            print("Regenerate sample pairs......")
+            get_csv(args.fiw_train_list_path,args.pairs_list_path,args.fiw_img_path,args.idx)
+
+        if iterno % 10 == 0:
+            args.alpha=get_alpha(ratios)
+            ratios=[]
+            save_name = args.save_path + str(args.basemodel) + ' casia' + str(args.idx) + '_'+ str(iterno) + 'checkpoint.pth.tar'
+            save_checkpoint(
+                {'iterno': iterno,
+                'state_dict2': basemodel.state_dict(),
+                'state_dict3': reg_model_kinship.state_dict()
+                'optimizer': optimizer.state_dict(),
+                }, save_name)
+
+            
+
+
+
+if __name__ == '__main__':
+    main()
